@@ -1,0 +1,27 @@
+package com.heilous.auth.dto;
+
+import com.heilous.user.enums.UserRole;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+public class SignUpRequest {
+    @Email @NotBlank
+    private String email;
+    @NotBlank
+    private String password;
+    @NotBlank
+    private String name;
+    private String phone;
+    @NotNull
+    private UserRole role;
+
+    // 사업자 전용 (role이 COMPANY일 때만 사용)
+    private String companyName;
+    private String businessNumber;
+    private String representativeName;
+}
