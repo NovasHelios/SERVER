@@ -47,8 +47,7 @@ public class AuthService {
         if (request.getRole() == UserRole.COMPANY) {
 
             if (request.getCompanyName() == null ||
-                    request.getBusinessNumber() == null ||
-                    request.getRepresentativeName() == null) {
+                    request.getBusinessNumber() == null) {
 
                 throw new CustomException(
                         GlobalErrorCode.INVALID_INPUT
@@ -91,9 +90,6 @@ public class AuthService {
                             )
                             .businessNumber(
                                     request.getBusinessNumber()
-                            )
-                            .representativeName(
-                                    request.getRepresentativeName()
                             )
                             .build();
 

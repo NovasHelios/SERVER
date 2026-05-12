@@ -5,23 +5,29 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
-@NoArgsConstructor
+@Setter
 public class SignUpRequest {
-    @Email @NotBlank
+
+    @Email
+    @NotBlank
     private String email;
+
     @NotBlank
     private String password;
+
     @NotBlank
     private String name;
+
+    @NotBlank
     private String phone;
+
     @NotNull
     private UserRole role;
 
-    // 사업자 전용 (role이 COMPANY일 때만 사용)
+    // 사업자 전용
     private String companyName;
     private String businessNumber;
-    private String representativeName;
 }
