@@ -11,27 +11,51 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class Land {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
-    private User owner; // 등록한 토지소유자
+    private User owner;
 
     @Column(nullable = false)
     private String address;
 
     @Column(nullable = false)
-    private Double area; // 면적 (평수 또는 m2)
+    private Double area;
 
-    private Long desiredPrice; // 희망 매매/임대 가격
+    private Long desiredPrice;
 
     @Column(length = 1000)
     private String description;
 
     @Enumerated(EnumType.STRING)
-    private LandStatus status; // PENDING, APPROVED, REJECTED
+    private LandStatus status;
 
-    public enum LandStatus { PENDING, APPROVED, REJECTED }
+    public enum LandStatus {
+        PENDING,
+        APPROVED,
+        REJECTED
+    }
+
+    // 수정
+    public void updateLand(
+            String address,
+            Double area,
+            Long desiredPrice,
+            String description
+    ) {
+
+        this.address = address;
+        this.area = area;
+        this.desiredPrice = desiredPrice;
+        this.description = description;
+    }
+
+    // 상태 변경
+    public void changeStatus(LandStatus status) {
+        this.status = status;
+    }
 }
-

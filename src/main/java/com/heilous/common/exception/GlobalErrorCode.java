@@ -16,7 +16,8 @@ public enum GlobalErrorCode {
 
     // 사용자/사업자 에러
     USER_NOT_FOUND(404, "USER_001", "사용자를 찾을 수 없습니다."),
-    BUSINESS_NUMBER_ALREADY_EXISTS(409, "COMP_001", "이미 등록된 사업자 번호입니다.");
+    BUSINESS_NUMBER_ALREADY_EXISTS(409, "COMP_001", "이미 등록된 사업자 번호입니다."),
+    LAND_NOT_FOUND(404, "LAND_001", "토지를 찾을 수 없습니다.");
 
     private final int status;
     private final String code;

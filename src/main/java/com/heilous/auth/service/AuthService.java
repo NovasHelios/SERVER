@@ -1,10 +1,12 @@
 package com.heilous.auth.service;
 
+import com.heilous.auth.dto.LoginRequest;
 import com.heilous.auth.dto.SignUpRequest;
 import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
 import com.heilous.company.entity.CompanyProfile;
 import com.heilous.company.repository.CompanyProfileRepository;
+import com.heilous.global.auth.JwtProvider;
 import com.heilous.user.entity.User;
 import com.heilous.user.enums.UserRole;
 import com.heilous.user.repository.UserRepository;
@@ -22,18 +24,17 @@ public class AuthService {
     private final CompanyProfileRepository companyRepository;
     private final PasswordEncoder passwordEncoder;
     private final RedisTemplate<String, String> redisTemplate;
+    private final JwtProvider jwtProvider;
 
     @Transactional
     public void signUp(SignUpRequest request) {
 
-        // 이메일 중복 확인
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new CustomException(
                     GlobalErrorCode.EMAIL_ALREADY_EXISTS
             );
         }
 
-        // 이메일 인증 확인
         String verified = redisTemplate.opsForValue()
                 .get("EMAIL_VERIFIED:" + request.getEmail());
 
@@ -43,7 +44,6 @@ public class AuthService {
             );
         }
 
-        // 사업자 회원가입 검증
         if (request.getRole() == UserRole.COMPANY) {
 
             if (request.getCompanyName() == null ||
@@ -79,7 +79,6 @@ public class AuthService {
 
         userRepository.save(user);
 
-        // 사업자 프로필 저장
         if (request.getRole() == UserRole.COMPANY) {
 
             CompanyProfile companyProfile =
@@ -95,5 +94,36 @@ public class AuthService {
 
             companyRepository.save(companyProfile);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public String login(LoginRequest request) {
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() ->
+                        new CustomException(
+                                GlobalErrorCode.INVALID_CREDENTIALS
+                        )
+                );
+
+        if (!passwordEncoder.matches(
+                request.getPassword(),
+                user.getPassword()
+        )) {
+            throw new CustomException(
+                    GlobalErrorCode.INVALID_CREDENTIALS
+            );
+        }
+
+        if (!user.isActive()) {
+            throw new CustomException(
+                    GlobalErrorCode.ACCESS_DENIED
+            );
+        }
+
+        return jwtProvider.createToken(
+                user.getEmail(),
+                user.getRole().name()
+        );
     }
 }

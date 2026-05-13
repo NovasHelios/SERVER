@@ -7,7 +7,8 @@ import lombok.*;
 @Entity
 @Getter
 @Setter
-@NoArgsConstructor
+@Table(name = "company_profile")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 public class CompanyProfile {

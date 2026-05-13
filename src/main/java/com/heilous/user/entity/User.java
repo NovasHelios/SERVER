@@ -37,16 +37,24 @@ public class User {
     @Column(nullable = false)
     private boolean isActive;
 
-    // --- 여기에 넣으시면 됩니다 ---
-
-    // 계정 비활성화 메서드 (Soft Delete용)
+    // 계정 비활성화
     public void deactivate() {
         this.isActive = false;
     }
 
-    // 정보 업데이트 메서드 (프로필 수정용)
-    public void updateInfo(String name, String phone) {
+    // 프로필 수정
+    public void updateInfo(
+            String name,
+            String phone
+    ) {
         this.name = name;
         this.phone = phone;
+    }
+
+    // 비밀번호 변경
+    public void changePassword(
+            String password
+    ) {
+        this.password = password;
     }
 }

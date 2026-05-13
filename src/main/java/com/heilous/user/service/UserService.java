@@ -2,10 +2,14 @@ package com.heilous.user.service;
 
 import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
+import com.heilous.user.dto.ChangePasswordRequest;
+import com.heilous.user.dto.UpdateProfileRequest;
+import com.heilous.user.dto.UserMeResponse;
 import com.heilous.user.entity.User;
 import com.heilous.user.enums.UserRole;
 import com.heilous.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,30 +18,110 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    /**
-     * 계정 삭제 (Soft Delete)
-     * @param id 삭제할 유저의 PK
-     * @param loginEmail 현재 로그인한 유저의 이메일 (SecurityContext에서 가져온 값)
-     */
-    @Transactional
-    public void deleteUser(Long id, String loginEmail) {
-        // 1. 삭제할 유저 조회
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
+    // 내 정보 조회
+    @Transactional(readOnly = true)
+    public UserMeResponse getMyInfo(
+            String email
+    ) {
 
-        // 2. 현재 로그인한 유저 조회 (권한 확인용)
-        User currentUser = userRepository.findByEmail(loginEmail)
-                .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new CustomException(
+                                GlobalErrorCode.USER_NOT_FOUND
+                        )
+                );
 
-        // 3. 본인이거나 관리자(ADMIN)인 경우만 삭제 가능하도록 예외 처리
-        if (!user.getEmail().equals(loginEmail) && currentUser.getRole() != UserRole.ADMIN) {
-            throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
-        }
-
-        // 4. 실제 삭제 대신 비활성화 처리 (Soft Delete)
-        user.deactivate();
+        return new UserMeResponse(
+                user.getEmail(),
+                user.getName(),
+                user.getPhone(),
+                user.getRole()
+        );
     }
 
-    // 여기에 프로필 수정 등의 로직을 추가하면 됩니다.
+    // 프로필 수정
+    @Transactional
+    public void updateProfile(
+            String email,
+            UpdateProfileRequest request
+    ) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new CustomException(
+                                GlobalErrorCode.USER_NOT_FOUND
+                        )
+                );
+
+        user.updateInfo(
+                request.getName(),
+                request.getPhone()
+        );
+    }
+
+    // 비밀번호 변경
+    @Transactional
+    public void changePassword(
+            String email,
+            ChangePasswordRequest request
+    ) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new CustomException(
+                                GlobalErrorCode.USER_NOT_FOUND
+                        )
+                );
+
+        if (!passwordEncoder.matches(
+                request.getCurrentPassword(),
+                user.getPassword()
+        )) {
+
+            throw new CustomException(
+                    GlobalErrorCode.INVALID_CREDENTIALS
+            );
+        }
+
+        user.changePassword(
+                passwordEncoder.encode(
+                        request.getNewPassword()
+                )
+        );
+    }
+
+    // 계정 삭제
+    @Transactional
+    public void deleteUser(
+            Long id,
+            String loginEmail
+    ) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new CustomException(
+                                GlobalErrorCode.USER_NOT_FOUND
+                        )
+                );
+
+        User currentUser =
+                userRepository.findByEmail(loginEmail)
+                        .orElseThrow(() ->
+                                new CustomException(
+                                        GlobalErrorCode.USER_NOT_FOUND
+                                )
+                        );
+
+        if (!user.getEmail().equals(loginEmail)
+                && currentUser.getRole() != UserRole.ADMIN) {
+
+            throw new CustomException(
+                    GlobalErrorCode.ACCESS_DENIED
+            );
+        }
+
+        user.deactivate();
+    }
 }
