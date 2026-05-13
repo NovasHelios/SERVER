@@ -1,6 +1,7 @@
 package com.heilous.auth.service;
 
 import com.heilous.auth.dto.LoginRequest;
+import com.heilous.auth.dto.LoginResponse;
 import com.heilous.auth.dto.SignUpRequest;
 import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
@@ -96,8 +97,8 @@ public class AuthService {
         }
     }
 
-    @Transactional(readOnly = true)
-    public String login(LoginRequest request) {
+    @Transactional
+    public LoginResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() ->
@@ -121,7 +122,8 @@ public class AuthService {
             );
         }
 
-        return jwtProvider.createToken(
+        return new LoginResponse(
+                jwtProvider.createToken(user.getEmail(), user.getRole().name()),
                 user.getEmail(),
                 user.getRole().name()
         );

@@ -72,8 +72,12 @@ public class LandService {
     @Transactional(readOnly = true)
     public List<LandResponse> getLandsByStatus(String status) {
 
-        Land.LandStatus landStatus =
-                Land.LandStatus.valueOf(status);
+        Land.LandStatus landStatus;
+        try {
+            landStatus = Land.LandStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(GlobalErrorCode.INVALID_INPUT);
+        }
 
         return landRepository
                 .findByStatusOrderByIdDesc(landStatus)

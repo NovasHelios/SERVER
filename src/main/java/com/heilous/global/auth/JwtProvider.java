@@ -63,6 +63,17 @@ public class JwtProvider {
                 .getSubject();
     }
 
+    // role 추출
+    public String getRole(String token) {
+
+        return (String) Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("role");
+    }
+
     // 토큰 검증
     public boolean validateToken(String token) {
 

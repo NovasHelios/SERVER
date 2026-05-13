@@ -59,11 +59,6 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request
     ) {
 
-        String token =
-                authService.login(request);
-
-        return APIResponse.ok(
-                new LoginResponse(token)
-        );
+        return APIResponse.ok(authService.login(request));
     }
 }
