@@ -1,5 +1,6 @@
 package com.heilous.land.entity;
 
+import com.heilous.common.entity.BaseEntity;
 import com.heilous.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -10,7 +11,7 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class Land {
+public class Land extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

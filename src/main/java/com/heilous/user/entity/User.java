@@ -1,5 +1,6 @@
 package com.heilous.user.entity;
 
+import com.heilous.common.entity.BaseEntity;
 import com.heilous.user.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
@@ -10,7 +11,7 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class User {
+public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,5 +1,6 @@
 package com.heilous.company.entity;
 
+import com.heilous.common.entity.BaseEntity;
 import com.heilous.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,7 +12,7 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class CompanyProfile {
+public class CompanyProfile extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
