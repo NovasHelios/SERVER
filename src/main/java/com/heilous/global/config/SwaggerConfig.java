@@ -14,23 +14,34 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI openAPI() {
 
-        SecurityScheme bearerScheme = new SecurityScheme()
-                .type(SecurityScheme.Type.HTTP)
-                .scheme("bearer")
-                .bearerFormat("JWT")
-                .in(SecurityScheme.In.HEADER)
-                .name("Authorization");
+        SecurityScheme bearerScheme =
+                new SecurityScheme()
+                        .type(SecurityScheme.Type.HTTP)
+                        .scheme("bearer")
+                        .bearerFormat("JWT")
+                        .in(SecurityScheme.In.HEADER)
+                        .name("Authorization");
 
         SecurityRequirement securityRequirement =
-                new SecurityRequirement().addList("bearerAuth");
+                new SecurityRequirement()
+                        .addList("bearerAuth");
 
         return new OpenAPI()
-                .info(new Info()
-                        .title("Heilous API")
-                        .description("Heilous 토지 중개 플랫폼 REST API 문서")
-                        .version("v1.0.0"))
+                .info(
+                        new Info()
+                                .title("Heilous API")
+                                .description(
+                                        "Heilous 토지 중개 플랫폼 REST API 문서"
+                                )
+                                .version("v1.0.0")
+                )
                 .addSecurityItem(securityRequirement)
-                .components(new Components()
-                        .addSecuritySchemes("bearerAuth", bearerScheme));
+                .components(
+                        new Components()
+                                .addSecuritySchemes(
+                                        "bearerAuth",
+                                        bearerScheme
+                                )
+                );
     }
 }
