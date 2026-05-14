@@ -41,7 +41,6 @@ public class Land extends BaseEntity {
         REJECTED
     }
 
-
     public void updateLand(String address, Double area, Long desiredPrice, String description) {
         this.address = address;
         this.area = area;
