@@ -40,23 +40,4 @@ public class Land extends BaseEntity {
         APPROVED,
         REJECTED
     }
-
-    // 수정
-    public void updateLand(
-            String address,
-            Double area,
-            Long desiredPrice,
-            String description
-    ) {
-
-        this.address = address;
-        this.area = area;
-        this.desiredPrice = desiredPrice;
-        this.description = description;
-    }
-
-    // 상태 변경
-    public void changeStatus(LandStatus status) {
-        this.status = status;
-    }
 }
