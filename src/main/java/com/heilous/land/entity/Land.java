@@ -40,4 +40,17 @@ public class Land extends BaseEntity {
         APPROVED,
         REJECTED
     }
+
+
+    public void updateLand(String address, Double area, Long desiredPrice, String description) {
+        this.address = address;
+        this.area = area;
+        this.desiredPrice = desiredPrice;
+        this.description = description;
+    }
+
+    public void changeStatus(LandStatus status) {
+        this.status = status;
+    }
+
 }
