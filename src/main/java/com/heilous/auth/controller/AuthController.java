@@ -34,7 +34,7 @@ public class AuthController {
         );
     }
 
-    @Operation(summary = "이메일 인증 코드 확인")
+    @Operation(summary = "이메일 인증 코드 확인!!!!!!")
     @PostMapping("/email/verify")
     public APIResponse<String> verifyEmail(
             @RequestParam String email,
@@ -47,7 +47,7 @@ public class AuthController {
         );
     }
 
-    @Operation(summary = "회원가입")
+    @Operation(summary = "회원가입 role=USER / COMPANY / ADMIN 중 택 1")
     @PostMapping("/signup")
     public APIResponse<String> signUp(
             @Valid @RequestBody SignUpRequest request
