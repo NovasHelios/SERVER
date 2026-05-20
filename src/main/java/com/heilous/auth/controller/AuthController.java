@@ -47,7 +47,7 @@ public class AuthController {
         );
     }
 
-    @Operation(summary = "회원가입 role=USER / COMPANY / ADMIN 중 택 1")
+    @Operation(summary = "회원가입 role=USER / COMPANY 중 택 1 & ADMIN은 우리가 직접추가")
     @PostMapping("/signup")
     public APIResponse<String> signUp(
             @Valid @RequestBody SignUpRequest request

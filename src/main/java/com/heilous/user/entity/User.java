@@ -20,7 +20,7 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column
     private String password;
 
     @Column(nullable = false)
@@ -37,6 +37,9 @@ public class User extends BaseEntity {
 
     @Column(nullable = false)
     private boolean isActive;
+
+    @Column
+    private String provider; // "google" 등 소셜 로그인 제공자, 일반 가입은 null
 
     // 계정 비활성화
     public void deactivate() {
