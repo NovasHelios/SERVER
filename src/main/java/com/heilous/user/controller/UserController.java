@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "User", description = "사용자 API")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
+@CrossOrigin
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {

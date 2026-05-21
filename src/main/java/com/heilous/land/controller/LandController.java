@@ -17,6 +17,7 @@ import java.util.List;
 @Tag(name = "Land", description = "토지 API")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
+@CrossOrigin
 @RequestMapping("/api/lands")
 @RequiredArgsConstructor
 public class LandController {

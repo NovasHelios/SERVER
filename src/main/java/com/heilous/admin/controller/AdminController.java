@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Admin", description = "관리자 API")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
+@CrossOrigin
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 public class AdminController {
