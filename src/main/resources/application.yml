@@ -43,3 +43,6 @@ jwt:
 
 oauth2:
   redirect-uri: ${OAUTH2_REDIRECT_URI}
+
+server:
+  forward-headers-strategy: framework
