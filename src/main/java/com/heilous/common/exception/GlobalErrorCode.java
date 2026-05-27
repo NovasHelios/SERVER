@@ -17,7 +17,13 @@ public enum GlobalErrorCode {
     // 사용자/사업자 에러
     USER_NOT_FOUND(404, "USER_001", "사용자를 찾을 수 없습니다."),
     BUSINESS_NUMBER_ALREADY_EXISTS(409, "COMP_001", "이미 등록된 사업자 번호입니다."),
-    LAND_NOT_FOUND(404, "LAND_001", "토지를 찾을 수 없습니다.");
+    LAND_NOT_FOUND(404, "LAND_001", "토지를 찾을 수 없습니다."),
+
+    // 북마크 에러
+    BOOKMARK_NOT_FOUND(404, "BOOK_001", "북마크를 찾을 수 없습니다."),
+    FOLDER_NOT_FOUND(404, "BOOK_002", "폴더를 찾을 수 없습니다."),
+    TAG_NOT_FOUND(404, "BOOK_003", "태그를 찾을 수 없습니다."),
+    BOOKMARK_ALREADY_EXISTS(409, "BOOK_004", "이미 등록된 북마크입니다.");
 
     private final int status;
     private final String code;
