@@ -31,6 +31,19 @@ public class EmailService {
         sendCode(email, "EMAIL_AUTH:", "Heilous 회원가입 인증 코드");
     }
 
+    public void resendVerificationEmail(String email) {
+
+        if (userRepository.existsByEmail(email)) {
+            throw new CustomException(GlobalErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+
+        // 기존 코드 및 인증 상태 삭제 후 재발송
+        redisTemplate.delete("EMAIL_AUTH:" + email);
+        redisTemplate.delete("EMAIL_VERIFIED:" + email);
+
+        sendCode(email, "EMAIL_AUTH:", "Heilous 회원가입 인증 코드");
+    }
+
     public void sendPasswordResetEmail(String email) {
 
         if (!userRepository.existsByEmail(email)) {

@@ -36,6 +36,15 @@ public class AuthController {
         );
     }
 
+    @Operation(summary = "이메일 인증 코드 재전송", description = "기존 코드를 무효화하고 새 코드를 발송")
+    @PostMapping("/email/resend")
+    public APIResponse<String> resendEmail(
+            @RequestParam String email
+    ) {
+        emailService.resendVerificationEmail(email);
+        return APIResponse.ok("인증 코드가 재발송되었습니다.");
+    }
+
     @Operation(summary = "이메일 인증 코드 확인!!!!!!")
     @PostMapping("/email/verify")
     public APIResponse<String> verifyEmail(
