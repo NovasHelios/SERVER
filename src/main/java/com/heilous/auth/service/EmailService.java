@@ -28,6 +28,20 @@ public class EmailService {
             throw new CustomException(GlobalErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
+        sendCode(email, "EMAIL_AUTH:", "Heilous 회원가입 인증 코드");
+    }
+
+    public void sendPasswordResetEmail(String email) {
+
+        if (!userRepository.existsByEmail(email)) {
+            throw new CustomException(GlobalErrorCode.USER_NOT_FOUND);
+        }
+
+        sendCode(email, "PASSWORD_RESET_AUTH:", "Heilous 비밀번호 재설정 인증 코드");
+    }
+
+    private void sendCode(String email, String redisPrefix, String subject) {
+
         String authNum = String.valueOf(
                 100000 + new Random().nextInt(900000)
         );
@@ -39,7 +53,7 @@ public class EmailService {
                     new MimeMessageHelper(mimeMessage, false, "utf-8");
 
             helper.setTo(email);
-            helper.setSubject("Heilous 회원가입 인증 코드");
+            helper.setSubject(subject);
             helper.setText("인증번호 : " + authNum, false);
 
             javaMailSender.send(mimeMessage);
@@ -48,9 +62,8 @@ public class EmailService {
             throw new RuntimeException("메일 전송 실패");
         }
 
-        // 인증번호 저장
         redisTemplate.opsForValue().set(
-                "EMAIL_AUTH:" + email,
+                redisPrefix + email,
                 authNum,
                 5,
                 TimeUnit.MINUTES
@@ -82,5 +95,25 @@ public class EmailService {
         throw new CustomException(
                 GlobalErrorCode.EMAIL_VERIFICATION_FAILED
         );
+    }
+
+    public void checkPasswordResetCode(String email, String code) {
+
+        String savedCode = redisTemplate.opsForValue()
+                .get("PASSWORD_RESET_AUTH:" + email);
+
+        if (savedCode == null || !savedCode.equals(code)) {
+            throw new CustomException(GlobalErrorCode.PASSWORD_RESET_CODE_INVALID);
+        }
+
+        // 인증 성공 → 비밀번호 변경 가능 상태로 저장 (10분)
+        redisTemplate.opsForValue().set(
+                "PASSWORD_RESET_VERIFIED:" + email,
+                "true",
+                10,
+                TimeUnit.MINUTES
+        );
+
+        redisTemplate.delete("PASSWORD_RESET_AUTH:" + email);
     }
 }

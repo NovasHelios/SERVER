@@ -2,6 +2,7 @@ package com.heilous.auth.service;
 
 import com.heilous.auth.dto.LoginRequest;
 import com.heilous.auth.dto.LoginResponse;
+import com.heilous.auth.dto.PasswordResetRequest;
 import com.heilous.auth.dto.SignUpRequest;
 import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
@@ -127,5 +128,27 @@ public class AuthService {
                 user.getEmail(),
                 user.getRole().name()
         );
+    }
+
+    @Transactional
+    public void resetPassword(PasswordResetRequest request) {
+
+        String verified = redisTemplate.opsForValue()
+                .get("PASSWORD_RESET_VERIFIED:" + request.getEmail());
+
+        if (verified == null) {
+            throw new CustomException(GlobalErrorCode.PASSWORD_RESET_NOT_VERIFIED);
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new CustomException(GlobalErrorCode.PASSWORD_MISMATCH);
+        }
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
+
+        user.changePassword(passwordEncoder.encode(request.getNewPassword()));
+
+        redisTemplate.delete("PASSWORD_RESET_VERIFIED:" + request.getEmail());
     }
 }

@@ -2,6 +2,7 @@ package com.heilous.auth.controller;
 
 import com.heilous.auth.dto.LoginRequest;
 import com.heilous.auth.dto.LoginResponse;
+import com.heilous.auth.dto.PasswordResetRequest;
 import com.heilous.auth.dto.SignUpRequest;
 import com.heilous.auth.service.AuthService;
 import com.heilous.auth.service.EmailService;
@@ -68,5 +69,35 @@ public class AuthController {
     ) {
 
         return APIResponse.ok(authService.login(request));
+    }
+
+    // ── 비밀번호 찾기 ──────────────────────────────────────────
+
+    @Operation(summary = "비밀번호 재설정 인증 코드 발송", description = "가입된 이메일로 6자리 코드 발송")
+    @PostMapping("/password/send")
+    public APIResponse<String> sendPasswordResetEmail(
+            @RequestParam String email
+    ) {
+        emailService.sendPasswordResetEmail(email);
+        return APIResponse.ok("인증 코드가 발송되었습니다.");
+    }
+
+    @Operation(summary = "비밀번호 재설정 코드 인증", description = "코드 일치 시 비밀번호 변경 가능 상태로 전환")
+    @PostMapping("/password/verify")
+    public APIResponse<String> verifyPasswordResetCode(
+            @RequestParam String email,
+            @RequestParam String code
+    ) {
+        emailService.checkPasswordResetCode(email, code);
+        return APIResponse.ok("인증 성공. 비밀번호를 변경해주세요.");
+    }
+
+    @Operation(summary = "비밀번호 재설정", description = "코드 인증 완료 후 새 비밀번호로 변경")
+    @PostMapping("/password/reset")
+    public APIResponse<String> resetPassword(
+            @Valid @RequestBody PasswordResetRequest request
+    ) {
+        authService.resetPassword(request);
+        return APIResponse.ok("비밀번호가 변경되었습니다.");
     }
 }

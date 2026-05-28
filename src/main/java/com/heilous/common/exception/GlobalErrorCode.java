@@ -19,11 +19,14 @@ public enum GlobalErrorCode {
     BUSINESS_NUMBER_ALREADY_EXISTS(409, "COMP_001", "이미 등록된 사업자 번호입니다."),
     LAND_NOT_FOUND(404, "LAND_001", "토지를 찾을 수 없습니다."),
 
-    // 북마크 에러
-    BOOKMARK_NOT_FOUND(404, "BOOK_001", "북마크를 찾을 수 없습니다."),
-    FOLDER_NOT_FOUND(404, "BOOK_002", "폴더를 찾을 수 없습니다."),
-    TAG_NOT_FOUND(404, "BOOK_003", "태그를 찾을 수 없습니다."),
-    BOOKMARK_ALREADY_EXISTS(409, "BOOK_004", "이미 등록된 북마크입니다.");
+    // 찜하기 에러
+    WISH_NOT_FOUND(404, "WISH_001", "찜한 토지를 찾을 수 없습니다."),
+    WISH_ALREADY_EXISTS(409, "WISH_002", "이미 찜한 토지입니다."),
+
+    // 비밀번호 찾기 에러
+    PASSWORD_RESET_CODE_INVALID(400, "AUTH_006", "인증 코드가 올바르지 않거나 만료되었습니다."),
+    PASSWORD_RESET_NOT_VERIFIED(400, "AUTH_007", "이메일 인증이 완료되지 않았습니다."),
+    PASSWORD_MISMATCH(400, "AUTH_008", "비밀번호가 일치하지 않습니다.");
 
     private final int status;
     private final String code;

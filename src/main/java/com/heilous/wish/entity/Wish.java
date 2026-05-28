@@ -1,20 +1,19 @@
-package com.heilous.bookmark.entity;
+package com.heilous.wish.entity;
 
 import com.heilous.common.entity.BaseEntity;
+import com.heilous.land.entity.Land;
 import com.heilous.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Entity
-@Table(name = "bookmark_tags")
+@Table(name = "wishes",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "land_id"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class BookmarkTag extends BaseEntity {
+public class Wish extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,10 +23,7 @@ public class BookmarkTag extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
-    private String name;
-
-    @ManyToMany(mappedBy = "tags")
-    @Builder.Default
-    private List<Bookmark> bookmarks = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "land_id", nullable = false)
+    private Land land;
 }
