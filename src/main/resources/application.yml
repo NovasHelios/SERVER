@@ -41,8 +41,14 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
 
+vworld:
+  api:
+    key: ${VWORLD_API_KEY}
+    domain: ${VWORLD_API_DOMAIN:}
+
 oauth2:
   redirect-uri: ${OAUTH2_REDIRECT_URI}
 
 server:
+  url: ${SERVER_URL:https://localhost:8080}
   forward-headers-strategy: framework

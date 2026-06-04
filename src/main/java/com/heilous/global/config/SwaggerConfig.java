@@ -5,11 +5,18 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
 public class SwaggerConfig {
+
+    @Value("${server.url:https://localhost:8080}")
+    private String serverUrl;
 
     @Bean
     public OpenAPI openAPI() {
@@ -26,6 +33,19 @@ public class SwaggerConfig {
                 new SecurityRequirement()
                         .addList("bearerAuth");
 
+        // HTTP와 HTTPS 둘 다 지원
+        Server httpServer = new Server();
+        httpServer.setUrl("http://localhost:8080");
+        httpServer.setDescription("Local HTTP Server");
+
+        Server httpsServer = new Server();
+        httpsServer.setUrl("https://localhost:8080");
+        httpsServer.setDescription("Local HTTPS Server");
+
+        Server prodServer = new Server();
+        prodServer.setUrl(serverUrl);
+        prodServer.setDescription("Production Server");
+
         return new OpenAPI()
                 .info(
                         new Info()
@@ -35,6 +55,7 @@ public class SwaggerConfig {
                                 )
                                 .version("v1.0.0")
                 )
+                .servers(List.of(httpServer, httpsServer, prodServer))
                 .addSecurityItem(securityRequirement)
                 .components(
                         new Components()

@@ -26,7 +26,10 @@ public enum GlobalErrorCode {
     // 비밀번호 찾기 에러
     PASSWORD_RESET_CODE_INVALID(400, "AUTH_006", "인증 코드가 올바르지 않거나 만료되었습니다."),
     PASSWORD_RESET_NOT_VERIFIED(400, "AUTH_007", "이메일 인증이 완료되지 않았습니다."),
-    PASSWORD_MISMATCH(400, "AUTH_008", "비밀번호가 일치하지 않습니다.");
+    PASSWORD_MISMATCH(400, "AUTH_008", "비밀번호가 일치하지 않습니다."),
+
+    // 외부 API 에러
+    EXTERNAL_API_ERROR(502, "EXT_001", "외부 API 호출 중 오류가 발생했습니다.");
 
     private final int status;
     private final String code;
