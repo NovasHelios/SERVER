@@ -29,7 +29,6 @@ public class VWorldController {
     public APIResponse<VWorldLandResponse> getLandInfo(
             @Valid @RequestBody VWorldLandRequest request
     ) {
-        System.out.println("잘들어오나");
         return APIResponse.ok(
                 vWorldService.getLandInfo(request)
         );
