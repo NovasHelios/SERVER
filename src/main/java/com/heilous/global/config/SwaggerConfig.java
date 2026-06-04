@@ -33,6 +33,10 @@ public class SwaggerConfig {
                 new SecurityRequirement()
                         .addList("bearerAuth");
 
+        Server prodServer = new Server();
+        prodServer.setUrl(serverUrl);
+        prodServer.setDescription("Production Server");
+
         // HTTP와 HTTPS 둘 다 지원
         Server httpServer = new Server();
         httpServer.setUrl("http://localhost:8080");
@@ -41,10 +45,6 @@ public class SwaggerConfig {
         Server httpsServer = new Server();
         httpsServer.setUrl("https://localhost:8080");
         httpsServer.setDescription("Local HTTPS Server");
-
-        Server prodServer = new Server();
-        prodServer.setUrl(serverUrl);
-        prodServer.setDescription("Production Server");
 
         return new OpenAPI()
                 .info(
@@ -55,7 +55,7 @@ public class SwaggerConfig {
                                 )
                                 .version("v1.0.0")
                 )
-                .servers(List.of(httpServer, httpsServer, prodServer))
+                .servers(List.of(prodServer, httpServer, httpsServer))
                 .addSecurityItem(securityRequirement)
                 .components(
                         new Components()
