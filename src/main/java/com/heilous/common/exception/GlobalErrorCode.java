@@ -29,7 +29,8 @@ public enum GlobalErrorCode {
     PASSWORD_MISMATCH(400, "AUTH_008", "비밀번호가 일치하지 않습니다."),
 
     // 외부 API 에러
-    EXTERNAL_API_ERROR(502, "EXT_001", "외부 API 호출 중 오류가 발생했습니다.");
+    EXTERNAL_API_ERROR(502, "EXT_001", "외부 API 호출 중 오류가 발생했습니다."),
+    KAKAO_ADDRESS_NOT_FOUND(404, "EXT_002", "해당 주소에 대한 검색 결과를 찾을 수 없습니다.");
 
     private final int status;
     private final String code;

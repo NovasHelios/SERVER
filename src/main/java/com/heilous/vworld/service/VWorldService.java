@@ -3,6 +3,8 @@ package com.heilous.vworld.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
+import com.heilous.vworld.dto.AddressLandResponse;
+import com.heilous.vworld.dto.KakaoAddressResponse;
 import com.heilous.vworld.dto.VWorldLandRequest;
 import com.heilous.vworld.dto.VWorldLandResponse;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 public class VWorldService {
 
     private final ObjectMapper objectMapper;
+    private final KakaoAddressService kakaoAddressService;
 
     @Value("${vworld.api.key}")
     private String apiKey;
@@ -76,9 +79,52 @@ public class VWorldService {
 
             return objectMapper.readValue(responseBody, VWorldLandResponse.class);
 
+        } catch (CustomException e) {
+            throw e;
         } catch (Exception e) {
             log.error("VWorld API 호출 실패", e);
             throw new CustomException(GlobalErrorCode.EXTERNAL_API_ERROR);
         }
+    }
+
+    /**
+     * 주소(지번/도로명)로 카카오 API를 호출해 PNU를 생성하고,
+     * 해당 PNU로 토지 임야 정보를 한 번에 조회합니다.
+     */
+    public AddressLandResponse getLandInfoByAddress(String address) {
+        // 1. 카카오 주소 검색
+        KakaoAddressResponse kakaoResponse = kakaoAddressService.searchAddress(address);
+
+        if (kakaoResponse.getDocuments() == null || kakaoResponse.getDocuments().isEmpty()) {
+            throw new CustomException(GlobalErrorCode.KAKAO_ADDRESS_NOT_FOUND);
+        }
+
+        KakaoAddressResponse.Document doc = kakaoResponse.getDocuments().get(0);
+
+        // 지번 주소 정보가 있어야 PNU 생성 가능
+        if (doc.getAddress() == null) {
+            throw new CustomException(GlobalErrorCode.KAKAO_ADDRESS_NOT_FOUND);
+        }
+
+        // 2. PNU 생성
+        String pnu = kakaoAddressService.buildPnu(doc.getAddress());
+        log.info("생성된 PNU: {}", pnu);
+
+        // 3. VWorld 토지 정보 조회
+        VWorldLandRequest request = new VWorldLandRequest();
+        request.setPnu(pnu);
+        VWorldLandResponse landInfo = getLandInfo(request);
+
+        // 4. 응답 조합
+        KakaoAddressResponse.RoadAddress roadAddress = doc.getRoadAddress();
+        return AddressLandResponse.builder()
+                .pnu(pnu)
+                .addressName(doc.getAddressName())
+                .x(doc.getX())
+                .y(doc.getY())
+                .zoneNo(roadAddress != null ? roadAddress.getZoneNo() : null)
+                .buildingName(roadAddress != null ? roadAddress.getBuildingName() : null)
+                .landInfo(landInfo)
+                .build();
     }
 }
