@@ -13,6 +13,8 @@ public class LandResponse {
 
     private String address;
     private Double area;
+    private String lcCode;
+    private String lcCodeNm;
     private Long desiredPrice;
     private String description;
 
@@ -24,6 +26,8 @@ public class LandResponse {
                 .ownerEmail(land.getOwner().getEmail())
                 .address(land.getAddress())
                 .area(land.getArea())
+                .lcCode(land.getLcCode())
+                .lcCodeNm(land.getLcCodeNm())
                 .desiredPrice(land.getDesiredPrice())
                 .description(land.getDescription())
                 .status(land.getStatus().name())

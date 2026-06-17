@@ -10,6 +10,9 @@ import com.heilous.land.repository.LandRepository;
 import com.heilous.user.entity.User;
 import com.heilous.user.enums.UserRole;
 import com.heilous.user.repository.UserRepository;
+import com.heilous.vworld.dto.AddressLandResponse;
+import com.heilous.vworld.dto.VWorldLandResponse;
+import com.heilous.vworld.service.VWorldService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +25,7 @@ public class LandService {
 
     private final LandRepository landRepository;
     private final UserRepository userRepository;
+    private final VWorldService vWorldService;
 
     // 토지 등록
     @Transactional
@@ -35,10 +39,35 @@ public class LandService {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
 
+        // VWorld API로 면적, 지목코드, 지목명 자동 조회
+        AddressLandResponse addressLandResponse = vWorldService.getLandInfoByAddress(request.getAddress());
+        VWorldLandResponse landInfo = addressLandResponse.getLandInfo();
+
+        Double area = null;
+        String lcCode = null;
+        String lcCodeNm = null;
+
+        if (landInfo != null
+                && landInfo.getLadfrlVOList() != null
+                && landInfo.getLadfrlVOList().getLadfrlVOList() != null
+                && !landInfo.getLadfrlVOList().getLadfrlVOList().isEmpty()) {
+
+            VWorldLandResponse.LandInfo info = landInfo.getLadfrlVOList().getLadfrlVOList().get(0);
+
+            try {
+                area = Double.parseDouble(info.getLndpclAr());
+            } catch (NumberFormatException | NullPointerException ignored) {}
+
+            lcCode = info.getLndcgrCode();
+            lcCodeNm = info.getLndcgrCodeNm();
+        }
+
         Land land = Land.builder()
                 .owner(owner)
                 .address(request.getAddress())
-                .area(request.getArea())
+                .area(area)
+                .lcCode(lcCode)
+                .lcCodeNm(lcCodeNm)
                 .desiredPrice(request.getDesiredPrice())
                 .description(request.getDescription())
                 .status(Land.LandStatus.PENDING)
@@ -102,9 +131,34 @@ public class LandService {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
 
+        // 주소가 변경된 경우 VWorld에서 면적, 지목 재조회
+        AddressLandResponse addressLandResponse = vWorldService.getLandInfoByAddress(request.getAddress());
+        VWorldLandResponse landInfo = addressLandResponse.getLandInfo();
+
+        Double area = null;
+        String lcCode = null;
+        String lcCodeNm = null;
+
+        if (landInfo != null
+                && landInfo.getLadfrlVOList() != null
+                && landInfo.getLadfrlVOList().getLadfrlVOList() != null
+                && !landInfo.getLadfrlVOList().getLadfrlVOList().isEmpty()) {
+
+            VWorldLandResponse.LandInfo info = landInfo.getLadfrlVOList().getLadfrlVOList().get(0);
+
+            try {
+                area = Double.parseDouble(info.getLndpclAr());
+            } catch (NumberFormatException | NullPointerException ignored) {}
+
+            lcCode = info.getLndcgrCode();
+            lcCodeNm = info.getLndcgrCodeNm();
+        }
+
         land.updateLand(
                 request.getAddress(),
-                request.getArea(),
+                area,
+                lcCode,
+                lcCodeNm,
                 request.getDesiredPrice(),
                 request.getDescription()
         );

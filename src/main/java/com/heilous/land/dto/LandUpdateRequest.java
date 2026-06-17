@@ -9,8 +9,6 @@ public class LandUpdateRequest {
 
     private String address;
 
-    private Double area;
-
     private Long desiredPrice;
 
     private String description;

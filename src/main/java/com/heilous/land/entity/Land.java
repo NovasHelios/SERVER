@@ -24,8 +24,11 @@ public class Land extends BaseEntity {
     @Column(nullable = false)
     private String address;
 
-    @Column(nullable = false)
     private Double area;
+
+    private String lcCode;    // 지목코드
+
+    private String lcCodeNm;  // 지목명
 
     private Long desiredPrice;
 
@@ -41,9 +44,11 @@ public class Land extends BaseEntity {
         REJECTED
     }
 
-    public void updateLand(String address, Double area, Long desiredPrice, String description) {
+    public void updateLand(String address, Double area, String lcCode, String lcCodeNm, Long desiredPrice, String description) {
         this.address = address;
         this.area = area;
+        this.lcCode = lcCode;
+        this.lcCodeNm = lcCodeNm;
         this.desiredPrice = desiredPrice;
         this.description = description;
     }

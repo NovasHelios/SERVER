@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class LandRegisterRequest {
     private String address;
-    private Double area;
     private Long desiredPrice;
     private String description;
 }
