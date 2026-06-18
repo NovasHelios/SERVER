@@ -2,6 +2,7 @@ package com.heilous.user.service;
 
 import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
+import com.heilous.common.service.ImageStorageService;
 import com.heilous.user.dto.ChangePasswordRequest;
 import com.heilous.user.dto.UpdateProfileRequest;
 import com.heilous.user.dto.UserMeResponse;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +21,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ImageStorageService imageStorageService;
 
     // 내 정보 조회
     @Transactional(readOnly = true)
@@ -37,7 +40,8 @@ public class UserService {
                 user.getEmail(),
                 user.getName(),
                 user.getPhone(),
-                user.getRole()
+                user.getRole(),
+                user.getProfileImagePath()
         );
     }
 
@@ -123,5 +127,20 @@ public class UserService {
         }
 
         user.deactivate();
+    }
+
+    // 프로필 이미지 업로드
+    @Transactional
+    public void uploadProfileImage(String email, MultipartFile image) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new CustomException(GlobalErrorCode.USER_NOT_FOUND));
+
+        // 기존 이미지 삭제
+        imageStorageService.delete(user.getProfileImagePath(), "profiles");
+
+        String filename = imageStorageService.store(image, "profiles");
+        user.updateProfileImage(filename);
     }
 }

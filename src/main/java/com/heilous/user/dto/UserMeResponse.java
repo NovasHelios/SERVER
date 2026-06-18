@@ -12,4 +12,5 @@ public class UserMeResponse {
     private String name;
     private String phone;
     private UserRole role;
+    private String profileImagePath;
 }

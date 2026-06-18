@@ -38,6 +38,8 @@ public class Land extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private LandStatus status;
 
+    private String landImagePath; // 토지 이미지 파일명
+
     public enum LandStatus {
         PENDING,
         APPROVED,
@@ -55,6 +57,10 @@ public class Land extends BaseEntity {
 
     public void changeStatus(LandStatus status) {
         this.status = status;
+    }
+
+    public void updateImagePath(String landImagePath) {
+        this.landImagePath = landImagePath;
     }
 
 }

@@ -41,6 +41,8 @@ public class User extends BaseEntity {
     @Column
     private String provider; // "google" 등 소셜 로그인 제공자, 일반 가입은 null
 
+    private String profileImagePath; // 프로필 이미지 파일명
+
     // 계정 비활성화
     public void deactivate() {
         this.isActive = false;
@@ -60,5 +62,9 @@ public class User extends BaseEntity {
             String password
     ) {
         this.password = password;
+    }
+
+    public void updateProfileImage(String profileImagePath) {
+        this.profileImagePath = profileImagePath;
     }
 }

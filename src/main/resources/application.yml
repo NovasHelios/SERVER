@@ -5,6 +5,11 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   data:
     redis:
       host: ${REDIS_HOST}
@@ -49,6 +54,10 @@ vworld:
 kakao:
   api:
     key: ${KAKAO_REST_API_KEY}
+
+file:
+  upload:
+    dir: ${FILE_UPLOAD_DIR:uploads}
 
 oauth2:
   redirect-uri: ${OAUTH2_REDIRECT_URI}

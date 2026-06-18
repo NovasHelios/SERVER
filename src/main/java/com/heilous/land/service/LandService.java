@@ -2,6 +2,7 @@ package com.heilous.land.service;
 
 import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
+import com.heilous.common.service.ImageStorageService;
 import com.heilous.land.dto.LandRegisterRequest;
 import com.heilous.land.dto.LandResponse;
 import com.heilous.land.dto.LandUpdateRequest;
@@ -16,6 +17,7 @@ import com.heilous.vworld.service.VWorldService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,6 +28,7 @@ public class LandService {
     private final LandRepository landRepository;
     private final UserRepository userRepository;
     private final VWorldService vWorldService;
+    private final ImageStorageService imageStorageService;
 
     // 토지 등록
     @Transactional
@@ -230,5 +233,24 @@ public class LandService {
                         new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
 
         land.changeStatus(Land.LandStatus.REJECTED);
+    }
+
+    // 토지 이미지 업로드
+    @Transactional
+    public void uploadLandImage(Long landId, MultipartFile image, String email) {
+
+        Land land = landRepository.findById(landId)
+                .orElseThrow(() ->
+                        new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
+
+        if (!land.getOwner().getEmail().equals(email)) {
+            throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
+        }
+
+        // 기존 이미지 삭제
+        imageStorageService.delete(land.getLandImagePath(), "lands");
+
+        String filename = imageStorageService.store(image, "lands");
+        land.updateImagePath(filename);
     }
 }

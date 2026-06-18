@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -127,5 +128,18 @@ public class LandController {
         );
 
         return APIResponse.ok("토지 거절 완료");
+    }
+
+    @Operation(summary = "토지 이미지 업로드", description = "본인 소유 토지에만 업로드 가능. jpg/png/webp/gif 허용")
+    @PatchMapping(value = "/{landId}/image", consumes = "multipart/form-data")
+    public APIResponse<String> uploadLandImage(
+            @PathVariable Long landId,
+            @RequestPart("image") MultipartFile image,
+            @AuthenticationPrincipal String email
+    ) {
+
+        landService.uploadLandImage(landId, image, email);
+
+        return APIResponse.ok("토지 이미지 업로드 완료");
     }
 }

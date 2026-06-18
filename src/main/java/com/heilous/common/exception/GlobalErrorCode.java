@@ -30,7 +30,11 @@ public enum GlobalErrorCode {
 
     // 외부 API 에러
     EXTERNAL_API_ERROR(502, "EXT_001", "외부 API 호출 중 오류가 발생했습니다."),
-    KAKAO_ADDRESS_NOT_FOUND(404, "EXT_002", "해당 주소에 대한 검색 결과를 찾을 수 없습니다.");
+    KAKAO_ADDRESS_NOT_FOUND(404, "EXT_002", "해당 주소에 대한 검색 결과를 찾을 수 없습니다."),
+
+    // 파일 업로드 에러
+    INVALID_IMAGE_TYPE(400, "FILE_001", "허용되지 않는 이미지 형식입니다. (jpg, png, webp, gif만 허용)"),
+    FILE_UPLOAD_FAILED(500, "FILE_002", "파일 저장 중 오류가 발생했습니다.");
 
     private final int status;
     private final String code;

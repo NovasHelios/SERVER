@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "User", description = "사용자 API")
 @SecurityRequirement(name = "bearerAuth")
@@ -85,5 +86,17 @@ public class UserController {
         return APIResponse.ok(
                 "계정이 성공적으로 삭제(비활성화)되었습니다."
         );
+    }
+
+    @Operation(summary = "프로필 이미지 업로드", description = "jpg/png/webp/gif 허용")
+    @PatchMapping(value = "/me/image", consumes = "multipart/form-data")
+    public APIResponse<String> uploadProfileImage(
+            @AuthenticationPrincipal String email,
+            @RequestPart("image") MultipartFile image
+    ) {
+
+        userService.uploadProfileImage(email, image);
+
+        return APIResponse.ok("프로필 이미지 업로드 완료");
     }
 }
