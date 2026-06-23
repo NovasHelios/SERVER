@@ -16,7 +16,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @Tag(name = "Land", description = "토지 API")
-@SecurityRequirement(name = "bearerAuth")
 @RestController
 @CrossOrigin
 @RequestMapping("/api/lands")
@@ -26,6 +25,7 @@ public class LandController {
     private final LandService landService;
 
     @Operation(summary = "토지 등록", description = "USER 권한 필요")
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     public APIResponse<String> registerLand(
             @RequestBody LandRegisterRequest request,
@@ -69,6 +69,7 @@ public class LandController {
     }
 
     @Operation(summary = "토지 수정", description = "본인 소유 토지만 수정 가능")
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{landId}")
     public APIResponse<String> updateLand(
             @PathVariable Long landId,
@@ -86,6 +87,7 @@ public class LandController {
     }
 
     @Operation(summary = "토지 삭제", description = "본인 또는 ADMIN만 삭제 가능")
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/{landId}")
     public APIResponse<String> deleteLand(
             @PathVariable Long landId,
@@ -101,6 +103,7 @@ public class LandController {
     }
 
     @Operation(summary = "토지 승인", description = "ADMIN 권한 필요")
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{landId}/approve")
     public APIResponse<String> approveLand(
             @PathVariable Long landId,
@@ -116,6 +119,7 @@ public class LandController {
     }
 
     @Operation(summary = "토지 거절", description = "ADMIN 권한 필요")
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{landId}/reject")
     public APIResponse<String> rejectLand(
             @PathVariable Long landId,
@@ -131,6 +135,7 @@ public class LandController {
     }
 
     @Operation(summary = "토지 이미지 업로드", description = "본인 소유 토지에만 업로드 가능. jpg/png/webp/gif 허용")
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping(value = "/{landId}/image", consumes = "multipart/form-data")
     public APIResponse<String> uploadLandImage(
             @PathVariable Long landId,

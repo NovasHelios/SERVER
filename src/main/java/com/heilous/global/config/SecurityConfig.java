@@ -47,7 +47,10 @@ public class SecurityConfig {
                                 "/login/oauth2/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/api/vworld/**"
+                                "/api/vworld/**",
+                                "/api/lands",
+                                "/api/lands/{landId}",
+                                "/api/lands/status/{status}"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
