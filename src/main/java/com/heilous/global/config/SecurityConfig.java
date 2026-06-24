@@ -50,7 +50,8 @@ public class SecurityConfig {
                                 "/api/vworld/**",
                                 "/api/lands",
                                 "/api/lands/{landId}",
-                                "/api/lands/status/{status}"
+                                "/api/lands/status/{status}",
+                                "/uploads/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
