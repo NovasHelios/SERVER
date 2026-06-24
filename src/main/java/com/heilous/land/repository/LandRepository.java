@@ -11,4 +11,6 @@ public interface LandRepository extends JpaRepository<Land, Long> {
     List<Land> findAllByOrderByIdDesc();
 
     List<Land> findByStatusOrderByIdDesc(LandStatus status);
+
+    boolean existsByAddress(String address);
 }

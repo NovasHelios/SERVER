@@ -42,6 +42,10 @@ public class LandService {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
 
+        if (landRepository.existsByAddress(request.getAddress())) {
+            throw new CustomException(GlobalErrorCode.LAND_ADDRESS_ALREADY_EXISTS);
+        }
+
         // VWorld API로 면적, 지목코드, 지목명 자동 조회
         AddressLandResponse addressLandResponse = vWorldService.getLandInfoByAddress(request.getAddress());
         VWorldLandResponse landInfo = addressLandResponse.getLandInfo();

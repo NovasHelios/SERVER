@@ -18,6 +18,7 @@ public enum GlobalErrorCode {
     USER_NOT_FOUND(404, "USER_001", "사용자를 찾을 수 없습니다."),
     BUSINESS_NUMBER_ALREADY_EXISTS(409, "COMP_001", "이미 등록된 사업자 번호입니다."),
     LAND_NOT_FOUND(404, "LAND_001", "토지를 찾을 수 없습니다."),
+    LAND_ADDRESS_ALREADY_EXISTS(409, "LAND_002", "이미 등록된 토지 주소입니다."),
 
     // 찜하기 에러
     WISH_NOT_FOUND(404, "WISH_001", "찜한 토지를 찾을 수 없습니다."),
