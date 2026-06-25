@@ -15,6 +15,10 @@ public class LandResponse {
     private Double area;
     private String lcCode;
     private String lcCodeNm;
+    private String lastUpdtDt;
+    private String regstrSeCodeNm;
+    private String cnrsPsnCo;
+    private String pnu;
     private Long desiredPrice;
     private String description;
 
@@ -29,6 +33,10 @@ public class LandResponse {
                 .area(land.getArea())
                 .lcCode(land.getLcCode())
                 .lcCodeNm(land.getLcCodeNm())
+                .lastUpdtDt(land.getLastUpdtDt())
+                .regstrSeCodeNm(land.getRegstrSeCodeNm())
+                .cnrsPsnCo(land.getCnrsPsnCo())
+                .pnu(land.getPnu())
                 .desiredPrice(land.getDesiredPrice())
                 .description(land.getDescription())
                 .status(land.getStatus().name())

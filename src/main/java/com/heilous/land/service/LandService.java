@@ -157,6 +157,10 @@ public class LandService {
         Double area = null;
         String lcCode = null;
         String lcCodeNm = null;
+        String lastUpdtDt = null;
+        String regstrSeCodeNm = null;
+        String cnrsPsnCo = null;
+        String pnu = null;
 
         if (landInfo != null
                 && landInfo.getLadfrlVOList() != null
@@ -171,6 +175,10 @@ public class LandService {
 
             lcCode = info.getLndcgrCode();
             lcCodeNm = info.getLndcgrCodeNm();
+            lastUpdtDt = info.getLastUpdtDt();
+            regstrSeCodeNm = info.getRegstrSeCodeNm();
+            cnrsPsnCo = info.getCnrsPsnCo();
+            pnu = info.getPnu();
         }
 
         land.updateLand(
@@ -178,6 +186,10 @@ public class LandService {
                 area,
                 lcCode,
                 lcCodeNm,
+                lastUpdtDt,
+                regstrSeCodeNm,
+                cnrsPsnCo,
+                pnu,
                 request.getDesiredPrice(),
                 request.getDescription()
         );
