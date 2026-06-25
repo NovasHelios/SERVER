@@ -53,6 +53,10 @@ public class LandService {
         Double area = null;
         String lcCode = null;
         String lcCodeNm = null;
+        String lastUpdtDt = null;
+        String regstrSeCodeNm = null;
+        String cnrsPsnCo = null;
+        String pnu = null;
 
         if (landInfo != null
                 && landInfo.getLadfrlVOList() != null
@@ -67,6 +71,10 @@ public class LandService {
 
             lcCode = info.getLndcgrCode();
             lcCodeNm = info.getLndcgrCodeNm();
+            lastUpdtDt = info.getLastUpdtDt();
+            regstrSeCodeNm = info.getRegstrSeCodeNm();
+            cnrsPsnCo = info.getCnrsPsnCo();
+            pnu = info.getPnu();
         }
 
         Land land = Land.builder()
@@ -75,6 +83,10 @@ public class LandService {
                 .area(area)
                 .lcCode(lcCode)
                 .lcCodeNm(lcCodeNm)
+                .lastUpdtDt(lastUpdtDt)
+                .regstrSeCodeNm(regstrSeCodeNm)
+                .cnrsPsnCo(cnrsPsnCo)
+                .pnu(pnu)
                 .desiredPrice(request.getDesiredPrice())
                 .description(request.getDescription())
                 .status(Land.LandStatus.PENDING)

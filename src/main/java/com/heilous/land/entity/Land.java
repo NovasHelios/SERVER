@@ -30,6 +30,14 @@ public class Land extends BaseEntity {
 
     private String lcCodeNm;  // 지목명
 
+    private String lastUpdtDt;    // 데이터기준일자
+
+    private String regstrSeCodeNm; // 대장구분명
+
+    private String cnrsPsnCo;     // 소유(공유)인수(명)
+
+    private String pnu;           // 고유번호
+
     private Long desiredPrice;
 
     @Column(length = 1000)
