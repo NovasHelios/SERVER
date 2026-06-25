@@ -44,3 +44,5 @@ src/main/resources/application-secret.yml
 helioskeypair.pem
 
 .DS_Store
+
+uploads/
