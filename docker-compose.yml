@@ -39,6 +39,8 @@ services:
       # .env의 localhost를 도커 내부 컨테이너 이름으로 오버라이드
       DB_URL: jdbc:mysql://mysql:3306/solar_platform?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
       REDIS_HOST: redis
+    volumes:
+      - ./uploads:/uploads
     depends_on:
       mysql:
         condition: service_healthy
