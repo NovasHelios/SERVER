@@ -32,7 +32,7 @@ public class LandService {
 
     // 토지 등록
     @Transactional
-    public void registerLand(LandRegisterRequest request, String email) {
+    public void registerLand(LandRegisterRequest request, String email, MultipartFile document) {
 
         User owner = userRepository.findByEmail(email)
                 .orElseThrow(() ->
@@ -93,6 +93,11 @@ public class LandService {
                 .build();
 
         landRepository.save(land);
+
+        if (document != null && !document.isEmpty()) {
+            String documentPath = imageStorageService.storeDocument(document, "documents");
+            land.updateDocumentPath(documentPath);
+        }
     }
 
     // 전체 조회
@@ -280,5 +285,25 @@ public class LandService {
 
         String filename = imageStorageService.store(image, "lands");
         land.updateImagePath(filename);
+    }
+
+    // 증명서 경로 조회 (어드민용)
+    @Transactional(readOnly = true)
+    public String getDocumentPath(Long landId, String email) {
+        User admin = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
+
+        if (admin.getRole() != UserRole.ADMIN) {
+            throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
+        }
+
+        Land land = landRepository.findById(landId)
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
+
+        if (land.getDocumentPath() == null) {
+            throw new CustomException(GlobalErrorCode.INVALID_INPUT);
+        }
+
+        return land.getDocumentPath();
     }
 }

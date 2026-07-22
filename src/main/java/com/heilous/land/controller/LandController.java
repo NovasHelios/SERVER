@@ -24,16 +24,18 @@ public class LandController {
 
     private final LandService landService;
 
-    @Operation(summary = "토지 등록", description = "USER 권한 필요")
+    @Operation(summary = "토지 등록", description = "USER 권한 필요. address, desiredPrice, description은 form 파라미터로, document는 파일로 전송")
     @SecurityRequirement(name = "bearerAuth")
-    @PostMapping
+    @PostMapping(consumes = "multipart/form-data")
     public APIResponse<String> registerLand(
-            @RequestBody LandRegisterRequest request,
+            @RequestParam("address") String address,
+            @RequestParam(value = "desiredPrice", required = false) Long desiredPrice,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestPart(value = "document", required = false) MultipartFile document,
             @AuthenticationPrincipal String email
     ) {
-
-        landService.registerLand(request, email);
-
+        LandRegisterRequest request = new LandRegisterRequest(address, desiredPrice, description);
+        landService.registerLand(request, email, document);
         return APIResponse.ok("토지 등록 완료");
     }
 

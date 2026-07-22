@@ -48,6 +48,8 @@ public class Land extends BaseEntity {
 
     private String landImagePath; // 토지 이미지 파일명
 
+    private String documentPath;  // 증명서 파일명
+
     public enum LandStatus {
         PENDING,
         APPROVED,
@@ -75,6 +77,10 @@ public class Land extends BaseEntity {
 
     public void updateImagePath(String landImagePath) {
         this.landImagePath = landImagePath;
+    }
+
+    public void updateDocumentPath(String documentPath) {
+        this.documentPath = documentPath;
     }
 
 }

@@ -35,6 +35,7 @@ public enum GlobalErrorCode {
 
     // 파일 업로드 에러
     INVALID_IMAGE_TYPE(400, "FILE_001", "허용되지 않는 이미지 형식입니다. (jpg, png, webp, gif만 허용)"),
+    INVALID_DOCUMENT_TYPE(400, "FILE_003", "허용되지 않는 문서 형식입니다. (pdf, jpg, png만 허용)"),
     FILE_UPLOAD_FAILED(500, "FILE_002", "파일 저장 중 오류가 발생했습니다.");
 
     private final int status;

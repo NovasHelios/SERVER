@@ -6,8 +6,16 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Tag(name = "Admin", description = "관리자 API")
 @SecurityRequirement(name = "bearerAuth")
@@ -19,21 +27,17 @@ public class AdminController {
 
     private final LandService landService;
 
+    @Value("${file.upload.dir:uploads}")
+    private String uploadDir;
+
     @Operation(summary = "토지 승인", description = "ADMIN 권한 필요")
     @PatchMapping("/lands/{landId}/approve")
     public APIResponse<String> approveLand(
             @PathVariable Long landId,
             @AuthenticationPrincipal String email
     ) {
-
-        landService.approveLand(
-                landId,
-                email
-        );
-
-        return APIResponse.ok(
-                "토지 승인 완료"
-        );
+        landService.approveLand(landId, email);
+        return APIResponse.ok("토지 승인 완료");
     }
 
     @Operation(summary = "토지 거절", description = "ADMIN 권한 필요")
@@ -42,14 +46,25 @@ public class AdminController {
             @PathVariable Long landId,
             @AuthenticationPrincipal String email
     ) {
+        landService.rejectLand(landId, email);
+        return APIResponse.ok("토지 거절 완료");
+    }
 
-        landService.rejectLand(
-                landId,
-                email
-        );
-
-        return APIResponse.ok(
-                "토지 거절 완료"
-        );
+    @Operation(summary = "토지 증명서 다운로드", description = "ADMIN 권한 필요. 등록된 증명서 파일을 다운로드합니다.")
+    @GetMapping("/lands/{landId}/document")
+    public ResponseEntity<Resource> downloadDocument(
+            @PathVariable Long landId,
+            @AuthenticationPrincipal String email
+    ) {
+        String filename = landService.getDocumentPath(landId, email);
+        try {
+            Path filePath = Paths.get(uploadDir, "documents", filename);
+            Resource resource = new UrlResource(filePath.toUri());
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

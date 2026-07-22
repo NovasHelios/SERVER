@@ -24,6 +24,7 @@ public class LandResponse {
 
     private String status;
     private String landImagePath;
+    private String documentPath;
 
     public static LandResponse from(Land land) {
         return LandResponse.builder()
@@ -41,6 +42,7 @@ public class LandResponse {
                 .description(land.getDescription())
                 .status(land.getStatus().name())
                 .landImagePath(land.getLandImagePath())
+                .documentPath(land.getDocumentPath())
                 .build();
     }
 }
