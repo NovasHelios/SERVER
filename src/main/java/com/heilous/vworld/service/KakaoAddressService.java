@@ -46,6 +46,8 @@ public class KakaoAddressService {
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Authorization", "KakaoAK " + kakaoApiKey);
             conn.setRequestProperty("Content-type", "application/json");
+            conn.setConnectTimeout(3_000);
+            conn.setReadTimeout(5_000);
 
             int responseCode = conn.getResponseCode();
             log.info("Kakao Address API Response code: {}", responseCode);
@@ -70,8 +72,6 @@ public class KakaoAddressService {
             conn.disconnect();
 
             String responseBody = sb.toString();
-            log.info("Kakao Address API Response: {}", responseBody);
-
             return objectMapper.readValue(responseBody, KakaoAddressResponse.class);
 
         } catch (Exception e) {

@@ -8,7 +8,8 @@ import lombok.*;
 
 @Entity
 @Table(name = "wishes",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "land_id"}))
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "land_id"}),
+        indexes = @Index(name = "idx_wishes_user_id_id", columnList = "user_id, id"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor

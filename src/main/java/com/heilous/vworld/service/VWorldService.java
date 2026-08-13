@@ -51,6 +51,8 @@ public class VWorldService {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Content-type", "application/json");
+            conn.setConnectTimeout(3_000);
+            conn.setReadTimeout(5_000);
 
             int responseCode = conn.getResponseCode();
             log.info("VWorld API Response code: {}", responseCode);
@@ -75,8 +77,6 @@ public class VWorldService {
             conn.disconnect();
 
             String responseBody = sb.toString();
-            log.info("VWorld API Response: {}", responseBody);
-
             return objectMapper.readValue(responseBody, VWorldLandResponse.class);
 
         } catch (CustomException e) {
