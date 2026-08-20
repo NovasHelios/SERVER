@@ -24,6 +24,12 @@ public enum GlobalErrorCode {
     WISH_NOT_FOUND(404, "WISH_001", "찜한 토지를 찾을 수 없습니다."),
     WISH_ALREADY_EXISTS(409, "WISH_002", "이미 찜한 토지입니다."),
 
+    // 채팅 에러
+    CHAT_ROOM_NOT_FOUND(404, "CHAT_001", "채팅방을 찾을 수 없습니다."),
+    CHAT_ROOM_ACCESS_DENIED(403, "CHAT_002", "해당 채팅방에 접근할 권한이 없습니다."),
+    CHAT_ROOM_ALREADY_EXISTS(409, "CHAT_003", "이미 해당 토지의 상담 채팅방이 있습니다."),
+    CHAT_ROOM_NOT_ACTIVE(409, "CHAT_004", "현재 상태에서는 채팅을 진행할 수 없습니다."),
+
     // 비밀번호 찾기 에러
     PASSWORD_RESET_CODE_INVALID(400, "AUTH_006", "인증 코드가 올바르지 않거나 만료되었습니다."),
     PASSWORD_RESET_NOT_VERIFIED(400, "AUTH_007", "이메일 인증이 완료되지 않았습니다."),
