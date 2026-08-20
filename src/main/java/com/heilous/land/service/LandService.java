@@ -89,6 +89,7 @@ public class LandService {
                 .pnu(pnu)
                 .desiredPrice(request.getDesiredPrice())
                 .description(request.getDescription())
+                .transactionType(request.getTransactionType())
                 .status(Land.LandStatus.PENDING)
                 .build();
 
@@ -196,7 +197,8 @@ public class LandService {
                 cnrsPsnCo,
                 pnu,
                 request.getDesiredPrice(),
-                request.getDescription()
+                request.getDescription(),
+                request.getTransactionType()
         );
     }
 

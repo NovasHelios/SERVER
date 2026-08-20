@@ -4,6 +4,7 @@ import com.heilous.common.dto.APIResponse;
 import com.heilous.land.dto.LandRegisterRequest;
 import com.heilous.land.dto.LandResponse;
 import com.heilous.land.dto.LandUpdateRequest;
+import com.heilous.land.entity.Land;
 import com.heilous.land.service.LandService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -31,10 +32,11 @@ public class LandController {
             @RequestParam("address") String address,
             @RequestParam(value = "desiredPrice", required = false) Long desiredPrice,
             @RequestParam(value = "description", required = false) String description,
+            @RequestParam("transactionType") Land.TransactionType transactionType,
             @RequestPart(value = "document", required = false) MultipartFile document,
             @AuthenticationPrincipal String email
     ) {
-        LandRegisterRequest request = new LandRegisterRequest(address, desiredPrice, description);
+        LandRegisterRequest request = new LandRegisterRequest(address, desiredPrice, description, transactionType);
         landService.registerLand(request, email, document);
         return APIResponse.ok("토지 등록 완료");
     }

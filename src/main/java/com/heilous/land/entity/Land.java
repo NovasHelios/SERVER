@@ -49,6 +49,10 @@ public class Land extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private LandStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TransactionType transactionType;
+
     private String landImagePath; // 토지 이미지 파일명
 
     private String documentPath;  // 증명서 파일명
@@ -59,9 +63,14 @@ public class Land extends BaseEntity {
         REJECTED
     }
 
+    public enum TransactionType {
+        SALE,
+        LEASE
+    }
+
     public void updateLand(String address, Double area, String lcCode, String lcCodeNm,
                            String lastUpdtDt, String regstrSeCodeNm, String cnrsPsnCo, String pnu,
-                           Long desiredPrice, String description) {
+                           Long desiredPrice, String description, TransactionType transactionType) {
         this.address = address;
         this.area = area;
         this.lcCode = lcCode;
@@ -72,6 +81,9 @@ public class Land extends BaseEntity {
         this.pnu = pnu;
         this.desiredPrice = desiredPrice;
         this.description = description;
+        if (transactionType != null) {
+            this.transactionType = transactionType;
+        }
     }
 
     public void changeStatus(LandStatus status) {

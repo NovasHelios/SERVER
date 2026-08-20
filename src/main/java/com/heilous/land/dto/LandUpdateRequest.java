@@ -1,5 +1,6 @@
 package com.heilous.land.dto;
 
+import com.heilous.land.entity.Land;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -12,4 +13,6 @@ public class LandUpdateRequest {
     private Long desiredPrice;
 
     private String description;
+
+    private Land.TransactionType transactionType;
 }

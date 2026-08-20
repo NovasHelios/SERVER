@@ -23,6 +23,7 @@ public class LandResponse {
     private String description;
 
     private String status;
+    private String transactionType;
     private String landImagePath;
     private String documentPath;
 
@@ -41,6 +42,7 @@ public class LandResponse {
                 .desiredPrice(land.getDesiredPrice())
                 .description(land.getDescription())
                 .status(land.getStatus().name())
+                .transactionType(land.getTransactionType() != null ? land.getTransactionType().name() : null)
                 .landImagePath(land.getLandImagePath())
                 .documentPath(land.getDocumentPath())
                 .build();
