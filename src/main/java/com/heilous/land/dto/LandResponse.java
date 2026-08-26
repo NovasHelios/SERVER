@@ -26,6 +26,8 @@ public class LandResponse {
     private String transactionType;
     private String landImagePath;
     private String documentPath;
+    private String x;
+    private String y;
 
     public static LandResponse from(Land land) {
         return LandResponse.builder()
@@ -45,6 +47,8 @@ public class LandResponse {
                 .transactionType(land.getTransactionType() != null ? land.getTransactionType().name() : null)
                 .landImagePath(land.getLandImagePath())
                 .documentPath(land.getDocumentPath())
+                .x(land.getX())
+                .y(land.getY())
                 .build();
     }
 }

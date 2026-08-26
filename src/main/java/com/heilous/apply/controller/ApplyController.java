@@ -23,7 +23,7 @@ public class ApplyController {
 
     private final ApplyService applyService;
 
-    @Operation(summary = "토지 신청(COMPANY)")
+    @Operation(summary = "토지 신청(COMPANY) — 기업 사용자가 특정 토지에 매수/임대 신청을 등록합니다.")
     @PostMapping("/{landId}")
     public APIResponse<String> applyLand(
             @PathVariable Long landId,
@@ -40,7 +40,7 @@ public class ApplyController {
         return APIResponse.ok("토지 신청 완료");
     }
 
-    @Operation(summary = "토지별 신청 목록 조회(USER)")
+    @Operation(summary = "토지별 신청 목록 조회(USER) — 특정 토지에 접수된 기업의 매수/임대 신청 내역을 조회합니다.")
     @GetMapping("/{landId}")
     public APIResponse<List<ApplyResponse>> getApplies(
             @PathVariable Long landId,
@@ -55,7 +55,7 @@ public class ApplyController {
         );
     }
 
-    @Operation(summary = "내 신청 내역 조회(COMPANY)")
+    @Operation(summary = "내 신청 내역 조회(COMPANY) — 로그인한 기업 사용자가 본인이 신청한 내역들을 조회합니다.")
     @GetMapping("/me")
     public APIResponse<List<ApplyResponse>> myApplies(
             @AuthenticationPrincipal String email
@@ -66,7 +66,7 @@ public class ApplyController {
         );
     }
 
-    @Operation(summary = "신청 승인(USER)")
+    @Operation(summary = "신청 승인(USER) — 토지 소유자(개인)가 접수된 신청을 승인합니다.")
     @PatchMapping("/{applyId}/approve")
     public APIResponse<String> approveApply(
             @PathVariable Long applyId,
@@ -81,7 +81,7 @@ public class ApplyController {
         return APIResponse.ok("신청 승인 완료");
     }
 
-    @Operation(summary = "신청 거절(USER)")
+    @Operation(summary = "신청 거절(USER) — 토지 소유자(개인)가 접수된 신청을 거절합니다.")
     @PatchMapping("/{applyId}/reject")
     public APIResponse<String> rejectApply(
             @PathVariable Long applyId,

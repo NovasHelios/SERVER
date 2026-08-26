@@ -57,6 +57,10 @@ public class Land extends BaseEntity {
 
     private String documentPath;  // 증명서 파일명
 
+    private String x; // 경도(Longitude)
+
+    private String y; // 위도(Latitude)
+
     public enum LandStatus {
         PENDING,
         APPROVED,
@@ -70,7 +74,8 @@ public class Land extends BaseEntity {
 
     public void updateLand(String address, Double area, String lcCode, String lcCodeNm,
                            String lastUpdtDt, String regstrSeCodeNm, String cnrsPsnCo, String pnu,
-                           Long desiredPrice, String description, TransactionType transactionType) {
+                           Long desiredPrice, String description, TransactionType transactionType,
+                           String x, String y) {
         this.address = address;
         this.area = area;
         this.lcCode = lcCode;
@@ -81,6 +86,8 @@ public class Land extends BaseEntity {
         this.pnu = pnu;
         this.desiredPrice = desiredPrice;
         this.description = description;
+        this.x = x;
+        this.y = y;
         if (transactionType != null) {
             this.transactionType = transactionType;
         }

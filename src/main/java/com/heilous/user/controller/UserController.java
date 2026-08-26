@@ -24,7 +24,7 @@ public class UserController {
 
     private final UserService userService;
 
-    @Operation(summary = "내 정보 조회")
+    @Operation(summary = "내 프로필 정보 조회 — 로그인된 사용자의 기본 프로필 데이터(이메일, 권한 등)를 조회합니다.")
     @GetMapping("/me")
     public APIResponse<UserMeResponse> getMyInfo(
             @AuthenticationPrincipal String email
@@ -35,7 +35,7 @@ public class UserController {
         );
     }
 
-    @Operation(summary = "프로필 수정")
+    @Operation(summary = "내 프로필 정보 수정 — 이름, 연락처 등 기본 프로필 정보를 수정합니다.")
     @PatchMapping("/me")
     public APIResponse<String> updateProfile(
             @AuthenticationPrincipal String email,
@@ -53,7 +53,7 @@ public class UserController {
         );
     }
 
-    @Operation(summary = "비밀번호 변경")
+    @Operation(summary = "비밀번호 변경 — 현재 비밀번호 확인 후 새로운 비밀번호로 변경합니다.")
     @PatchMapping("/password")
     public APIResponse<String> changePassword(
             @AuthenticationPrincipal String email,
@@ -71,7 +71,7 @@ public class UserController {
         );
     }
 
-    @Operation(summary = "계정 삭제(비활성화)")
+    @Operation(summary = "회원 탈퇴(계정 비활성화) — 지정된 사용자 계정을 삭제 처리합니다.")
     @DeleteMapping("/{id}")
     public APIResponse<String> deleteAccount(
             @PathVariable Long id,
@@ -88,7 +88,7 @@ public class UserController {
         );
     }
 
-    @Operation(summary = "프로필 이미지 업로드", description = "jpg/png/webp/gif 허용")
+    @Operation(summary = "프로필 이미지 등록/수정 — 프로필 사진 파일(jpg, png, webp, gif)을 업로드합니다.")
     @PatchMapping(value = "/me/image", consumes = "multipart/form-data")
     public APIResponse<String> uploadProfileImage(
             @AuthenticationPrincipal String email,

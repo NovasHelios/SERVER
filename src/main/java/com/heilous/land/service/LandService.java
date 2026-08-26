@@ -79,7 +79,7 @@ public class LandService {
 
         Land land = Land.builder()
                 .owner(owner)
-                .address(request.getAddress())
+                .address(addressLandResponse.getAddressName())
                 .area(area)
                 .lcCode(lcCode)
                 .lcCodeNm(lcCodeNm)
@@ -91,6 +91,8 @@ public class LandService {
                 .description(request.getDescription())
                 .transactionType(request.getTransactionType())
                 .status(Land.LandStatus.PENDING)
+                .x(addressLandResponse.getX())
+                .y(addressLandResponse.getY())
                 .build();
 
         landRepository.save(land);
@@ -188,7 +190,7 @@ public class LandService {
         }
 
         land.updateLand(
-                request.getAddress(),
+                addressLandResponse.getAddressName(),
                 area,
                 lcCode,
                 lcCodeNm,
@@ -198,7 +200,9 @@ public class LandService {
                 pnu,
                 request.getDesiredPrice(),
                 request.getDescription(),
-                request.getTransactionType()
+                request.getTransactionType(),
+                addressLandResponse.getX(),
+                addressLandResponse.getY()
         );
     }
 
