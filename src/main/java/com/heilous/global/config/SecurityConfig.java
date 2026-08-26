@@ -4,6 +4,7 @@ import com.heilous.auth.service.CustomOAuth2UserService;
 import com.heilous.global.auth.JwtAuthFilter;
 import com.heilous.global.auth.JwtProvider;
 import com.heilous.global.auth.OAuth2SuccessHandler;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -61,6 +62,14 @@ public class SecurityConfig {
                                 userInfo.userService(customOAuth2UserService)
                         )
                         .successHandler(oAuth2SuccessHandler)
+                )
+
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("{\"message\":\"로그인이 필요합니다.\"}");
+                        })
                 )
 
                 .addFilterBefore(
