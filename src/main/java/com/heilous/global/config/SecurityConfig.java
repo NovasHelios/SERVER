@@ -51,7 +51,6 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/api/vworld/**",
                                 "/api/lands",
-                                "/api/lands/{landId}",
                                 "/api/lands/filter",
                                 "/uploads/**"
                         ).permitAll()

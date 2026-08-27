@@ -51,7 +51,7 @@ public class LandResponse {
                 .regionEupmyeondong(land.getRegionEupmyeondong())
                 .desiredPrice(land.getDesiredPrice())
                 .description(land.getDescription())
-                .status(land.getStatus().name())
+                .status(land.getStatus() != null ? land.getStatus().name() : null)
                 .transactionType(land.getTransactionType() != null ? land.getTransactionType().name() : null)
                 .landImagePath(land.getLandImagePath())
                 .documentPath(land.getDocumentPath())
