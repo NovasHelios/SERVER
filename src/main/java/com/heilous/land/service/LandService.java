@@ -3,11 +3,13 @@ package com.heilous.land.service;
 import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
 import com.heilous.common.service.ImageStorageService;
+import com.heilous.land.dto.LandFilterRequest;
 import com.heilous.land.dto.LandRegisterRequest;
 import com.heilous.land.dto.LandResponse;
 import com.heilous.land.dto.LandUpdateRequest;
 import com.heilous.land.entity.Land;
 import com.heilous.land.repository.LandRepository;
+import com.heilous.land.repository.LandSpecification;
 import com.heilous.user.entity.User;
 import com.heilous.user.enums.UserRole;
 import com.heilous.user.repository.UserRepository;
@@ -57,6 +59,7 @@ public class LandService {
         String regstrSeCodeNm = null;
         String cnrsPsnCo = null;
         String pnu = null;
+        String ldCodeNm = null;
 
         if (landInfo != null
                 && landInfo.getLadfrlVOList() != null
@@ -75,7 +78,10 @@ public class LandService {
             regstrSeCodeNm = info.getRegstrSeCodeNm();
             cnrsPsnCo = info.getCnrsPsnCo();
             pnu = info.getPnu();
+            ldCodeNm = info.getLdCodeNm();
         }
+
+        String[] regions = parseRegions(ldCodeNm);
 
         Land land = Land.builder()
                 .owner(owner)
@@ -87,6 +93,10 @@ public class LandService {
                 .regstrSeCodeNm(regstrSeCodeNm)
                 .cnrsPsnCo(cnrsPsnCo)
                 .pnu(pnu)
+                .ldCodeNm(ldCodeNm)
+                .regionSido(regions[0])
+                .regionSigungu(regions[1])
+                .regionEupmyeondong(regions[2])
                 .desiredPrice(request.getDesiredPrice())
                 .description(request.getDescription())
                 .transactionType(request.getTransactionType())
@@ -124,22 +134,27 @@ public class LandService {
         return LandResponse.from(land);
     }
 
-    // 상태별 조회
+    // 필터 조회
     @Transactional(readOnly = true)
-    public List<LandResponse> getLandsByStatus(String status) {
-
-        Land.LandStatus landStatus;
-        try {
-            landStatus = Land.LandStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
-            throw new CustomException(GlobalErrorCode.INVALID_INPUT);
-        }
+    public List<LandResponse> getLandsByFilter(LandFilterRequest filter) {
 
         return landRepository
-                .findByStatusOrderByIdDesc(landStatus)
+                .findAll(LandSpecification.buildFilter(filter))
                 .stream()
                 .map(LandResponse::from)
                 .toList();
+    }
+
+    // ldCodeNm → [시/도, 시/군/구, 읍/면/동] 파싱
+    private String[] parseRegions(String ldCodeNm) {
+        String[] result = new String[3];
+        if (ldCodeNm == null || ldCodeNm.isBlank()) return result;
+
+        String[] parts = ldCodeNm.trim().split("\\s+");
+        if (parts.length > 0) result[0] = parts[0];
+        if (parts.length > 1) result[1] = parts[1];
+        if (parts.length > 2) result[2] = parts[2];
+        return result;
     }
 
     // 토지 수정
@@ -169,6 +184,7 @@ public class LandService {
         String regstrSeCodeNm = null;
         String cnrsPsnCo = null;
         String pnu = null;
+        String ldCodeNm = null;
 
         if (landInfo != null
                 && landInfo.getLadfrlVOList() != null
@@ -187,7 +203,10 @@ public class LandService {
             regstrSeCodeNm = info.getRegstrSeCodeNm();
             cnrsPsnCo = info.getCnrsPsnCo();
             pnu = info.getPnu();
+            ldCodeNm = info.getLdCodeNm();
         }
+
+        String[] regions = parseRegions(ldCodeNm);
 
         land.updateLand(
                 addressLandResponse.getAddressName(),
@@ -198,6 +217,10 @@ public class LandService {
                 regstrSeCodeNm,
                 cnrsPsnCo,
                 pnu,
+                ldCodeNm,
+                regions[0],
+                regions[1],
+                regions[2],
                 request.getDesiredPrice(),
                 request.getDescription(),
                 request.getTransactionType(),

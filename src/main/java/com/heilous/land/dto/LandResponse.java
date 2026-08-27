@@ -19,6 +19,10 @@ public class LandResponse {
     private String regstrSeCodeNm;
     private String cnrsPsnCo;
     private String pnu;
+    private String ldCodeNm;
+    private String regionSido;
+    private String regionSigungu;
+    private String regionEupmyeondong;
     private Long desiredPrice;
     private String description;
 
@@ -41,6 +45,10 @@ public class LandResponse {
                 .regstrSeCodeNm(land.getRegstrSeCodeNm())
                 .cnrsPsnCo(land.getCnrsPsnCo())
                 .pnu(land.getPnu())
+                .ldCodeNm(land.getLdCodeNm())
+                .regionSido(land.getRegionSido())
+                .regionSigungu(land.getRegionSigungu())
+                .regionEupmyeondong(land.getRegionEupmyeondong())
                 .desiredPrice(land.getDesiredPrice())
                 .description(land.getDescription())
                 .status(land.getStatus().name())

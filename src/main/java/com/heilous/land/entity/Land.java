@@ -41,6 +41,14 @@ public class Land extends BaseEntity {
 
     private String pnu;           // 고유번호
 
+    private String ldCodeNm;      // 법정동명 (전체)
+
+    private String regionSido;    // 시/도
+
+    private String regionSigungu; // 시/군/구
+
+    private String regionEupmyeondong; // 읍/면/동
+
     private Long desiredPrice;
 
     @Column(length = 1000)
@@ -74,6 +82,7 @@ public class Land extends BaseEntity {
 
     public void updateLand(String address, Double area, String lcCode, String lcCodeNm,
                            String lastUpdtDt, String regstrSeCodeNm, String cnrsPsnCo, String pnu,
+                           String ldCodeNm, String regionSido, String regionSigungu, String regionEupmyeondong,
                            Long desiredPrice, String description, TransactionType transactionType,
                            String x, String y) {
         this.address = address;
@@ -84,6 +93,10 @@ public class Land extends BaseEntity {
         this.regstrSeCodeNm = regstrSeCodeNm;
         this.cnrsPsnCo = cnrsPsnCo;
         this.pnu = pnu;
+        this.ldCodeNm = ldCodeNm;
+        this.regionSido = regionSido;
+        this.regionSigungu = regionSigungu;
+        this.regionEupmyeondong = regionEupmyeondong;
         this.desiredPrice = desiredPrice;
         this.description = description;
         this.x = x;
