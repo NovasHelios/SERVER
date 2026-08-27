@@ -19,6 +19,10 @@ public class LandResponse {
     private String regstrSeCodeNm;
     private String cnrsPsnCo;
     private String pnu;
+    private String ldCodeNm;
+    private String regionSido;
+    private String regionSigungu;
+    private String regionEupmyeondong;
     private Long desiredPrice;
     private String description;
 
@@ -26,6 +30,8 @@ public class LandResponse {
     private String transactionType;
     private String landImagePath;
     private String documentPath;
+    private String x;
+    private String y;
 
     public static LandResponse from(Land land) {
         return LandResponse.builder()
@@ -39,12 +45,18 @@ public class LandResponse {
                 .regstrSeCodeNm(land.getRegstrSeCodeNm())
                 .cnrsPsnCo(land.getCnrsPsnCo())
                 .pnu(land.getPnu())
+                .ldCodeNm(land.getLdCodeNm())
+                .regionSido(land.getRegionSido())
+                .regionSigungu(land.getRegionSigungu())
+                .regionEupmyeondong(land.getRegionEupmyeondong())
                 .desiredPrice(land.getDesiredPrice())
                 .description(land.getDescription())
                 .status(land.getStatus().name())
                 .transactionType(land.getTransactionType() != null ? land.getTransactionType().name() : null)
                 .landImagePath(land.getLandImagePath())
                 .documentPath(land.getDocumentPath())
+                .x(land.getX())
+                .y(land.getY())
                 .build();
     }
 }

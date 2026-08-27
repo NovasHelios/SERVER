@@ -3,12 +3,13 @@ package com.heilous.land.repository;
 import com.heilous.land.entity.Land;
 import com.heilous.land.entity.Land.LandStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface LandRepository extends JpaRepository<Land, Long> {
+public interface LandRepository extends JpaRepository<Land, Long>, JpaSpecificationExecutor<Land> {
 
     @Query("select l from Land l join fetch l.owner order by l.id desc")
     List<Land> findAllByOrderByIdDesc();

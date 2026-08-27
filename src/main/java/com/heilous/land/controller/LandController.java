@@ -1,6 +1,7 @@
 package com.heilous.land.controller;
 
 import com.heilous.common.dto.APIResponse;
+import com.heilous.land.dto.LandFilterRequest;
 import com.heilous.land.dto.LandRegisterRequest;
 import com.heilous.land.dto.LandResponse;
 import com.heilous.land.dto.LandUpdateRequest;
@@ -61,15 +62,13 @@ public class LandController {
         );
     }
 
-    @Operation(summary = "상태별 토지 조회", description = "status: PENDING | APPROVED | REJECTED")
-    @GetMapping("/status/{status}")
-    public APIResponse<List<LandResponse>> getLandsByStatus(
-            @PathVariable String status
+    @Operation(summary = "토지 필터 조회",
+            description = "status: PENDING | APPROVED | REJECTED (nullable, null이면 전체)\n모든 필터 조건은 선택사항입니다.")
+    @GetMapping("/filter")
+    public APIResponse<List<LandResponse>> getLandsByFilter(
+            @ModelAttribute LandFilterRequest filter
     ) {
-
-        return APIResponse.ok(
-                landService.getLandsByStatus(status)
-        );
+        return APIResponse.ok(landService.getLandsByFilter(filter));
     }
 
     @Operation(summary = "토지 수정", description = "본인 소유 토지만 수정 가능")
