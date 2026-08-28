@@ -1,5 +1,7 @@
 package com.heilous.land.entity;
 
+import com.heilous.apply.entity.LandApply;
+import com.heilous.chat.entity.ChatRoom;
 import com.heilous.common.entity.BaseEntity;
 import com.heilous.user.entity.User;
 import com.heilous.wish.entity.Wish;
@@ -75,6 +77,12 @@ public class Land extends BaseEntity {
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Wish> wishes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<LandApply> landApplies = new ArrayList<>();
+
+    @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<ChatRoom> chatRooms = new ArrayList<>();
 
     public enum LandStatus {
         PENDING,

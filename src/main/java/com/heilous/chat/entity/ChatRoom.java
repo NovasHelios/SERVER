@@ -6,6 +6,9 @@ import com.heilous.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "chat_rooms", uniqueConstraints = @UniqueConstraint(name = "uk_chat_room_company_land", columnNames = {"company_id", "land_id"}), indexes = {
         @Index(name = "idx_chat_room_company_id", columnList = "company_id"),
@@ -27,6 +30,9 @@ public class ChatRoom extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.PENDING;
+
+    @OneToMany(mappedBy = "room", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<ChatMessage> messages = new ArrayList<>();
 
     public void accept() { this.status = Status.ACCEPTED; }
     public void reject() { this.status = Status.REJECTED; }
