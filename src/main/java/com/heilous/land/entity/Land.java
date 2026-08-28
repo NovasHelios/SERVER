@@ -2,8 +2,12 @@ package com.heilous.land.entity;
 
 import com.heilous.common.entity.BaseEntity;
 import com.heilous.user.entity.User;
+import com.heilous.wish.entity.Wish;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "lands", indexes = {
@@ -68,6 +72,9 @@ public class Land extends BaseEntity {
     private String x; // 경도(Longitude)
 
     private String y; // 위도(Latitude)
+
+    @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Wish> wishes = new ArrayList<>();
 
     public enum LandStatus {
         PENDING,

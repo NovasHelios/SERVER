@@ -2,6 +2,7 @@ package com.heilous.common.exception;
 
 import com.heilous.common.dto.APIResponse;
 import com.heilous.common.dto.ErrorResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -33,9 +34,23 @@ public class GlobalExceptionHandler {
                 );
     }
 
-    // Validation 예외 처리
-    @ExceptionHandler(MethodArgumentNotValidException.class)
+    // DataIntegrityViolation 예외 처리 (FK 제약조건 등)
+    @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<APIResponse<ErrorResponse>>
+    handleDataIntegrityViolation(DataIntegrityViolationException e) {
+
+        GlobalErrorCode errorCode = GlobalErrorCode.DATA_INTEGRITY_VIOLATION;
+
+        return ResponseEntity
+                .status(errorCode.getStatus())
+                .body(new APIResponse<>(
+                        errorCode.getStatus(),
+                        ErrorResponse.of(errorCode.getCode(), errorCode.getMessage())
+                ));
+    }
+
+    // Validation 예외 처리
+    @ExceptionHandler(MethodArgumentNotValidException.class)    public ResponseEntity<APIResponse<ErrorResponse>>
     handleValidationException(
             MethodArgumentNotValidException e
     ) {
