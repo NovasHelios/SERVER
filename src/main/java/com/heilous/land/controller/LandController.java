@@ -83,9 +83,9 @@ public class LandController {
                     + "- sigungu: 시/군/구 (sido 입력 시에만 적용, 예: 수원시)\n"
                     + "- eupmyeondong: 읍/면/동 (sigungu 입력 시에만 적용, 예: 영통동)"
     )
-    @GetMapping("/filter")
+    @PostMapping("/filter")
     public APIResponse<List<LandResponse>> getLandsByFilter(
-            @ModelAttribute LandFilterRequest filter
+            @RequestBody LandFilterRequest filter
     ) {
         return APIResponse.ok(landService.getLandsByFilter(filter));
     }

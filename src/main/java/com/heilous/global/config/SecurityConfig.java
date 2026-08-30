@@ -54,6 +54,7 @@ public class SecurityConfig {
                                 "/uploads/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/lands","/api/lands/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/lands/filter").permitAll()
                         .anyRequest().authenticated()
                 )
 
