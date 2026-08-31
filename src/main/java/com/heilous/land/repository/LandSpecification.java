@@ -93,13 +93,19 @@ public class LandSpecification {
         }
 
         if (hasSalePrice) {
-            return buildTypeWithRange(cb, root, Land.TransactionType.SALE,
+            // SALE은 가격 필터 적용, LEASE는 필터 없이 전부
+            Predicate saleBlock = buildTypeWithRange(cb, root, Land.TransactionType.SALE,
                     filter.getSaleMinPrice(), filter.getSaleMaxPrice());
+            Predicate leaseAll = cb.equal(root.get("transactionType"), Land.TransactionType.LEASE);
+            return cb.or(saleBlock, leaseAll);
         }
 
         if (hasLeasePrice) {
-            return buildTypeWithRange(cb, root, Land.TransactionType.LEASE,
+            // LEASE는 가격 필터 적용, SALE은 필터 없이 전부
+            Predicate leaseBlock = buildTypeWithRange(cb, root, Land.TransactionType.LEASE,
                     filter.getLeaseMinPrice(), filter.getLeaseMaxPrice());
+            Predicate saleAll = cb.equal(root.get("transactionType"), Land.TransactionType.SALE);
+            return cb.or(leaseBlock, saleAll);
         }
 
         return null; // 가격 조건 없음
