@@ -4,8 +4,7 @@ import com.heilous.apply.entity.LandApply;
 import com.heilous.chat.entity.ChatRoom;
 import com.heilous.common.entity.BaseEntity;
 import com.heilous.user.entity.User;
-import com.heilous.wish.entity.Wish;
-import jakarta.persistence.*;
+import com.heilous.wish.entity.Wish;import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
@@ -67,13 +66,14 @@ public class Land extends BaseEntity {
     @Column(nullable = false)
     private TransactionType transactionType;
 
-    private String landImagePath; // 토지 이미지 파일명
-
     private String documentPath;  // 증명서 파일명
 
     private String x; // 경도(Longitude)
 
     private String y; // 위도(Latitude)
+
+    @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LandImage> landImages = new ArrayList<>();
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Wish> wishes = new ArrayList<>();
@@ -125,8 +125,12 @@ public class Land extends BaseEntity {
         this.status = status;
     }
 
-    public void updateImagePath(String landImagePath) {
-        this.landImagePath = landImagePath;
+    public void addImage(LandImage image) {
+        this.landImages.add(image);
+    }
+
+    public void removeImage(LandImage image) {
+        this.landImages.remove(image);
     }
 
     public void updateDocumentPath(String documentPath) {

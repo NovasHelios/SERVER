@@ -17,8 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
-@Tag(name = "Land", description = "토지 API")
-@RestController
+@Tag(name = "Land", description = "토지 API")@RestController
 @CrossOrigin
 @RequestMapping("/api/lands")
 @RequiredArgsConstructor
@@ -28,7 +27,7 @@ public class LandController {
 
     @Operation(
             summary = "토지 등록",
-            description = "USER 권한을 가진 사용자가 토지를 등록 신청합니다. 주소를 입력하면 카카오 API와 VWorld API를 통해 면적, 지목, 법정동 등 상세 정보가 자동으로 조회됩니다. 등록된 토지는 PENDING 상태로 관리자 승인을 기다립니다. multipart/form-data로 전송하며 증명서 파일(document)을 함께 첨부할 수 있습니다."
+            description = "USER 권한을 가진 사용자가 토지를 등록 신청합니다. 주소를 입력하면 카카오 API와 VWorld API를 통해 면적, 지목, 법정동 등 상세 정보가 자동으로 조회됩니다. 등록된 토지는 PENDING 상태로 관리자 승인을 기다립니다. multipart/form-data로 전송하며 이미지는 최소 3장, 최대 5장 필수 첨부해야 합니다."
     )
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping(consumes = "multipart/form-data")
@@ -38,10 +37,11 @@ public class LandController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam("transactionType") Land.TransactionType transactionType,
             @RequestPart(value = "document", required = false) MultipartFile document,
+            @RequestPart("images") List<MultipartFile> images,
             @AuthenticationPrincipal String email
     ) {
         LandRegisterRequest request = new LandRegisterRequest(address, desiredPrice, description, transactionType);
-        landService.registerLand(request, email, document);
+        landService.registerLand(request, email, document, images);
         return APIResponse.ok("토지 등록 완료");
     }
 
@@ -169,19 +169,21 @@ public class LandController {
     }
 
     @Operation(
-            summary = "토지 이미지 업로드",
-            description = "토지 소유자(USER)가 본인 소유 토지의 대표 이미지를 업로드합니다. 기존 이미지가 있으면 자동으로 교체됩니다. 허용 형식: jpg, png, webp, gif."
+            summary = "토지 이미지 추가/수정",
+            description = "토지 소유자(USER)가 이미지를 추가하거나 기존 이미지를 교체합니다.\n\n"
+                    + "- imageId 없이 요청: 새 이미지 추가 (최대 5장 초과 시 오류)\n"
+                    + "- imageId 포함 요청: 해당 이미지를 새 이미지로 교체 (기존 파일 삭제됨)\n\n"
+                    + "허용 형식: jpg, png, webp, gif"
     )
     @SecurityRequirement(name = "bearerAuth")
     @PatchMapping(value = "/{landId}/image", consumes = "multipart/form-data")
     public APIResponse<String> uploadLandImage(
             @PathVariable Long landId,
+            @RequestParam(value = "imageId", required = false) Long imageId,
             @RequestPart("image") MultipartFile image,
             @AuthenticationPrincipal String email
     ) {
-
-        landService.uploadLandImage(landId, image, email);
-
+        landService.uploadLandImage(landId, imageId, image, email);
         return APIResponse.ok("토지 이미지 업로드 완료");
     }
 }

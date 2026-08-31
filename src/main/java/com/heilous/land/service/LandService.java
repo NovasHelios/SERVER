@@ -8,6 +8,8 @@ import com.heilous.land.dto.LandRegisterRequest;
 import com.heilous.land.dto.LandResponse;
 import com.heilous.land.dto.LandUpdateRequest;
 import com.heilous.land.entity.Land;
+import com.heilous.land.entity.LandImage;
+import com.heilous.land.repository.LandImageRepository;
 import com.heilous.land.repository.LandRepository;
 import com.heilous.land.repository.LandSpecification;
 import com.heilous.user.entity.User;
@@ -22,23 +24,22 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 public class LandService {
 
     private final LandRepository landRepository;
+    private final LandImageRepository landImageRepository;
     private final UserRepository userRepository;
     private final VWorldService vWorldService;
     private final ImageStorageService imageStorageService;
 
     // 토지 등록
     @Transactional
-    public void registerLand(LandRegisterRequest request, String email, MultipartFile document) {
+    public void registerLand(LandRegisterRequest request, String email, MultipartFile document, List<MultipartFile> images) {
 
         User owner = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new CustomException(GlobalErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
 
         if (owner.getRole() != UserRole.USER) {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
@@ -46,6 +47,17 @@ public class LandService {
 
         if (landRepository.existsByAddress(request.getAddress())) {
             throw new CustomException(GlobalErrorCode.LAND_ADDRESS_ALREADY_EXISTS);
+        }
+
+        // 이미지 개수 검증 (최소 3장, 최대 5장)
+        List<MultipartFile> validImages = images == null ? List.of() :
+                images.stream().filter(f -> f != null && !f.isEmpty()).toList();
+
+        if (validImages.size() < 3) {
+            throw new CustomException(GlobalErrorCode.LAND_IMAGE_REQUIRED);
+        }
+        if (validImages.size() > 5) {
+            throw new CustomException(GlobalErrorCode.LAND_IMAGE_MAX_EXCEEDED);
         }
 
         // VWorld API로 면적, 지목코드, 지목명 자동 조회
@@ -106,6 +118,16 @@ public class LandService {
                 .build();
 
         landRepository.save(land);
+
+        // 이미지 저장
+        for (MultipartFile image : validImages) {
+            String filename = imageStorageService.store(image, "lands");
+            LandImage landImage = LandImage.builder()
+                    .land(land)
+                    .imagePath(filename)
+                    .build();
+            landImageRepository.save(landImage);
+        }
 
         if (document != null && !document.isEmpty()) {
             String documentPath = imageStorageService.storeDocument(document, "documents");
@@ -297,23 +319,39 @@ public class LandService {
         land.changeStatus(Land.LandStatus.REJECTED);
     }
 
-    // 토지 이미지 업로드
+    // 토지 이미지 추가/수정
     @Transactional
-    public void uploadLandImage(Long landId, MultipartFile image, String email) {
+    public void uploadLandImage(Long landId, Long imageId, MultipartFile image, String email) {
 
         Land land = landRepository.findById(landId)
-                .orElseThrow(() ->
-                        new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
 
         if (!land.getOwner().getEmail().equals(email)) {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
 
-        // 기존 이미지 삭제
-        imageStorageService.delete(land.getLandImagePath(), "lands");
-
         String filename = imageStorageService.store(image, "lands");
-        land.updateImagePath(filename);
+
+        if (imageId != null) {
+            // 수정: 기존 이미지 교체
+            LandImage existing = landImageRepository.findById(imageId)
+                    .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_IMAGE_NOT_FOUND));
+
+            imageStorageService.delete(existing.getImagePath(), "lands");
+            land.removeImage(existing);
+            landImageRepository.delete(existing);
+        } else {
+            // 추가: 최대 5장 초과 여부 확인
+            if (land.getLandImages().size() >= 5) {
+                throw new CustomException(GlobalErrorCode.LAND_IMAGE_MAX_EXCEEDED);
+            }
+        }
+
+        LandImage newImage = LandImage.builder()
+                .land(land)
+                .imagePath(filename)
+                .build();
+        landImageRepository.save(newImage);
     }
 
     // 증명서 경로 조회 (어드민용)
