@@ -167,6 +167,15 @@ public class LandService {
                 .toList();
     }
 
+    // 내 토지 조회
+    @Transactional(readOnly = true)
+    public List<LandResponse> getMyLands(String email) {
+        return landRepository.findByOwnerEmailOrderByIdDesc(email)
+                .stream()
+                .map(LandResponse::from)
+                .toList();
+    }
+
     // ldCodeNm → [시/도, 시/군/구, 읍/면/동] 파싱
     private String[] parseRegions(String ldCodeNm) {
         String[] result = new String[3];

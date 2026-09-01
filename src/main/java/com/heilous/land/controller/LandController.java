@@ -58,6 +58,18 @@ public class LandController {
     }
 
     @Operation(
+            summary = "내 토지 목록 조회",
+            description = "로그인한 USER가 본인이 등록한 토지 목록을 최신순으로 조회합니다."
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/me")
+    public APIResponse<List<LandResponse>> getMyLands(
+            @AuthenticationPrincipal String email
+    ) {
+        return APIResponse.ok(landService.getMyLands(email));
+    }
+
+    @Operation(
             summary = "토지 상세 조회",
             description = "토지 ID로 특정 토지의 상세 정보를 조회합니다. 면적, 지목, 법정동, 좌표, 희망가격 등 모든 필드를 반환합니다. 로그인 없이 조회 가능합니다."
     )

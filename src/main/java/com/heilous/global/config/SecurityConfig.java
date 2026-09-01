@@ -53,7 +53,8 @@ public class SecurityConfig {
                                 "/api/vworld/**",
                                 "/uploads/**"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/lands","/api/lands/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/lands/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/lands", "/api/lands/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/lands/filter").permitAll()
                         .anyRequest().authenticated()
                 )
@@ -67,9 +68,21 @@ public class SecurityConfig {
 
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
+                            // 이미 응답이 커밋된 경우 무시
+                            if (response.isCommitted()) return;
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"message\":\"로그인이 필요합니다.\"}");
+                            response.getWriter().write(
+                                    "{\"status\":401,\"data\":{\"code\":\"AUTH_009\",\"message\":\"로그인이 필요합니다.\"}}"
+                            );
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            if (response.isCommitted()) return;
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write(
+                                    "{\"status\":403,\"data\":{\"code\":\"AUTH_002\",\"message\":\"해당 작업을 수행할 권한이 없습니다.\"}}"
+                            );
                         })
                 )
 

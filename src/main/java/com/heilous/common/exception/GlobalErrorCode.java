@@ -13,6 +13,7 @@ public enum GlobalErrorCode {
     EMAIL_ALREADY_EXISTS(409, "AUTH_003", "이미 가입된 이메일입니다."),
     EMAIL_VERIFICATION_FAILED(400, "AUTH_004", "이메일 인증 코드가 일치하지 않습니다."),
     INVALID_INPUT(400, "AUTH_005", "잘못된 입력입니다."),
+    UNAUTHORIZED(401, "AUTH_009", "로그인이 필요합니다."),
 
     // 사용자/사업자 에러
     USER_NOT_FOUND(404, "USER_001", "사용자를 찾을 수 없습니다."),
