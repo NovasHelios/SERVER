@@ -68,9 +68,11 @@ public class Land extends BaseEntity {
 
     private String documentPath;  // 증명서 파일명
 
-    private String x; // 경도(Longitude)
+    @Column(nullable = false)
+    private Double x;
 
-    private String y; // 위도(Latitude)
+    @Column(nullable = false)
+    private Double y;
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LandImage> landImages = new ArrayList<>();
@@ -99,7 +101,7 @@ public class Land extends BaseEntity {
                            String lastUpdtDt, String regstrSeCodeNm, String cnrsPsnCo, String pnu,
                            String ldCodeNm, String regionSido, String regionSigungu, String regionEupmyeondong,
                            Long desiredPrice, String description, TransactionType transactionType,
-                           String x, String y) {
+                           Double x, Double y) {
         this.address = address;
         this.area = area;
         this.lcCode = lcCode;

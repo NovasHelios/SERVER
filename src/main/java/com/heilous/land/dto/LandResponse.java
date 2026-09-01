@@ -32,8 +32,8 @@ public class LandResponse {
     private String transactionType;
     private List<String> landImagePaths;
     private String documentPath;
-    private String x;
-    private String y;
+    private Double x;
+    private Double y;
 
     public static LandResponse from(Land land) {
         return LandResponse.builder()

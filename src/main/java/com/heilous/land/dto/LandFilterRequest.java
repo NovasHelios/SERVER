@@ -10,6 +10,11 @@ import lombok.Setter;
 @NoArgsConstructor
 public class LandFilterRequest {
 
+    private Double topLeftX;
+    private Double topLeftY;
+    private Double bottomRightX;
+    private Double bottomRightY;
+
     private Land.LandStatus status; // nullable → null이면 전체 상태
 
     private Land.TransactionType transactionType;

@@ -15,125 +15,313 @@ public class LandSpecification {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // 상태 필터 (nullable → null이면 전체)
+            // 상태 필터
             if (filter.getStatus() != null) {
-                predicates.add(cb.equal(root.get("status"), filter.getStatus()));
+                predicates.add(
+                        cb.equal(root.get("status"), filter.getStatus())
+                );
             }
 
             // 면적 범위
             if (filter.getMinArea() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("area"), filter.getMinArea()));
+                predicates.add(
+                        cb.greaterThanOrEqualTo(
+                                root.get("area"),
+                                filter.getMinArea()
+                        )
+                );
             }
+
             if (filter.getMaxArea() != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("area"), filter.getMaxArea()));
+                predicates.add(
+                        cb.lessThanOrEqualTo(
+                                root.get("area"),
+                                filter.getMaxArea()
+                        )
+                );
             }
 
             // 지역 계층 필터
             if (filter.getSido() != null && !filter.getSido().isBlank()) {
-                predicates.add(cb.equal(root.get("regionSido"), filter.getSido()));
-                if (filter.getSigungu() != null && !filter.getSigungu().isBlank()) {
-                    predicates.add(cb.equal(root.get("regionSigungu"), filter.getSigungu()));
-                    if (filter.getEupmyeondong() != null && !filter.getEupmyeondong().isBlank()) {
-                        predicates.add(cb.equal(root.get("regionEupmyeondong"), filter.getEupmyeondong()));
+
+                predicates.add(
+                        cb.equal(root.get("regionSido"), filter.getSido())
+                );
+
+                if (filter.getSigungu() != null &&
+                        !filter.getSigungu().isBlank()) {
+
+                    predicates.add(
+                            cb.equal(
+                                    root.get("regionSigungu"),
+                                    filter.getSigungu()
+                            )
+                    );
+
+                    if (filter.getEupmyeondong() != null &&
+                            !filter.getEupmyeondong().isBlank()) {
+
+                        predicates.add(
+                                cb.equal(
+                                        root.get("regionEupmyeondong"),
+                                        filter.getEupmyeondong()
+                                )
+                        );
                     }
                 }
             }
 
             // 가격 필터
-            Predicate pricePredicate = buildPricePredicate(filter, cb, root);
+            Predicate pricePredicate =
+                    buildPricePredicate(filter, cb, root);
+
             if (pricePredicate != null) {
                 predicates.add(pricePredicate);
             }
 
-            // N+1 방지: owner fetch join
+            // =========================
+            // 지도 영역(BBOX) 필터
+            // EPSG:4326
+            //
+            // X = 경도
+            // Y = 위도
+            // =========================
+            if (filter.getTopLeftX() != null &&
+                    filter.getTopLeftY() != null &&
+                    filter.getBottomRightX() != null &&
+                    filter.getBottomRightY() != null) {
+
+                // X: 왼쪽 → 오른쪽
+                predicates.add(
+                        cb.between(
+                                root.get("x"),
+                                filter.getTopLeftX(),
+                                filter.getBottomRightX()
+                        )
+                );
+
+                // Y: 아래 → 위
+                predicates.add(
+                        cb.between(
+                                root.get("y"),
+                                filter.getBottomRightY(),
+                                filter.getTopLeftY()
+                        )
+                );
+            }
+
+            // N+1 방지
             if (query.getResultType().equals(Land.class)) {
                 root.fetch("owner");
             }
 
-            query.orderBy(cb.desc(root.get("id")));
+            // 최신 등록순
+            query.orderBy(
+                    cb.desc(root.get("id"))
+            );
 
-            return cb.and(predicates.toArray(new Predicate[0]));
+            return cb.and(
+                    predicates.toArray(new Predicate[0])
+            );
         };
     }
 
     /**
      * 가격 조건 처리
-     * - transactionType 명시: 해당 타입 가격 범위만 적용
-     * - transactionType null + sale 조건만: (SALE AND salePriceCondition)
-     * - transactionType null + lease 조건만: (LEASE AND leasePriceCondition)
-     * - transactionType null + 양쪽 조건: (SALE AND salePriceCondition) OR (LEASE AND leasePriceCondition)
-     * - 가격 조건 없음: null 반환 (조건 미적용)
      */
     private static Predicate buildPricePredicate(
             LandFilterRequest filter,
             jakarta.persistence.criteria.CriteriaBuilder cb,
             jakarta.persistence.criteria.Root<Land> root
     ) {
-        boolean hasSalePrice = filter.getSaleMinPrice() != null || filter.getSaleMaxPrice() != null;
-        boolean hasLeasePrice = filter.getLeaseMinPrice() != null || filter.getLeaseMaxPrice() != null;
 
+        boolean hasSalePrice =
+                filter.getSaleMinPrice() != null ||
+                        filter.getSaleMaxPrice() != null;
+
+        boolean hasLeasePrice =
+                filter.getLeaseMinPrice() != null ||
+                        filter.getLeaseMaxPrice() != null;
+
+        // transactionType 지정
         if (filter.getTransactionType() != null) {
-            // transactionType 명시된 경우
-            Predicate typePredicate = cb.equal(root.get("transactionType"), filter.getTransactionType());
-            Predicate rangePredicate = filter.getTransactionType() == Land.TransactionType.SALE
-                    ? buildRangePredicate(cb, root, filter.getSaleMinPrice(), filter.getSaleMaxPrice())
-                    : buildRangePredicate(cb, root, filter.getLeaseMinPrice(), filter.getLeaseMaxPrice());
 
-            return rangePredicate != null ? cb.and(typePredicate, rangePredicate) : typePredicate;
+            Predicate typePredicate =
+                    cb.equal(
+                            root.get("transactionType"),
+                            filter.getTransactionType()
+                    );
+
+            Predicate rangePredicate;
+
+            if (filter.getTransactionType() ==
+                    Land.TransactionType.SALE) {
+
+                rangePredicate = buildRangePredicate(
+                        cb,
+                        root,
+                        filter.getSaleMinPrice(),
+                        filter.getSaleMaxPrice()
+                );
+
+            } else {
+
+                rangePredicate = buildRangePredicate(
+                        cb,
+                        root,
+                        filter.getLeaseMinPrice(),
+                        filter.getLeaseMaxPrice()
+                );
+            }
+
+            return rangePredicate != null
+                    ? cb.and(typePredicate, rangePredicate)
+                    : typePredicate;
         }
 
-        // transactionType null
+        // SALE + LEASE 가격 조건 둘 다 있음
         if (hasSalePrice && hasLeasePrice) {
-            // (SALE AND saleRange) OR (LEASE AND leaseRange)
-            Predicate saleBlock = buildTypeWithRange(cb, root, Land.TransactionType.SALE,
-                    filter.getSaleMinPrice(), filter.getSaleMaxPrice());
-            Predicate leaseBlock = buildTypeWithRange(cb, root, Land.TransactionType.LEASE,
-                    filter.getLeaseMinPrice(), filter.getLeaseMaxPrice());
-            return cb.or(saleBlock, leaseBlock);
+
+            Predicate saleBlock =
+                    buildTypeWithRange(
+                            cb,
+                            root,
+                            Land.TransactionType.SALE,
+                            filter.getSaleMinPrice(),
+                            filter.getSaleMaxPrice()
+                    );
+
+            Predicate leaseBlock =
+                    buildTypeWithRange(
+                            cb,
+                            root,
+                            Land.TransactionType.LEASE,
+                            filter.getLeaseMinPrice(),
+                            filter.getLeaseMaxPrice()
+                    );
+
+            return cb.or(
+                    saleBlock,
+                    leaseBlock
+            );
         }
 
+        // SALE 가격 조건만 있음
         if (hasSalePrice) {
-            // SALE은 가격 필터 적용, LEASE는 필터 없이 전부
-            Predicate saleBlock = buildTypeWithRange(cb, root, Land.TransactionType.SALE,
-                    filter.getSaleMinPrice(), filter.getSaleMaxPrice());
-            Predicate leaseAll = cb.equal(root.get("transactionType"), Land.TransactionType.LEASE);
-            return cb.or(saleBlock, leaseAll);
+
+            Predicate saleBlock =
+                    buildTypeWithRange(
+                            cb,
+                            root,
+                            Land.TransactionType.SALE,
+                            filter.getSaleMinPrice(),
+                            filter.getSaleMaxPrice()
+                    );
+
+            Predicate leaseAll =
+                    cb.equal(
+                            root.get("transactionType"),
+                            Land.TransactionType.LEASE
+                    );
+
+            return cb.or(
+                    saleBlock,
+                    leaseAll
+            );
         }
 
+        // LEASE 가격 조건만 있음
         if (hasLeasePrice) {
-            // LEASE는 가격 필터 적용, SALE은 필터 없이 전부
-            Predicate leaseBlock = buildTypeWithRange(cb, root, Land.TransactionType.LEASE,
-                    filter.getLeaseMinPrice(), filter.getLeaseMaxPrice());
-            Predicate saleAll = cb.equal(root.get("transactionType"), Land.TransactionType.SALE);
-            return cb.or(leaseBlock, saleAll);
+
+            Predicate leaseBlock =
+                    buildTypeWithRange(
+                            cb,
+                            root,
+                            Land.TransactionType.LEASE,
+                            filter.getLeaseMinPrice(),
+                            filter.getLeaseMaxPrice()
+                    );
+
+            Predicate saleAll =
+                    cb.equal(
+                            root.get("transactionType"),
+                            Land.TransactionType.SALE
+                    );
+
+            return cb.or(
+                    leaseBlock,
+                    saleAll
+            );
         }
 
-        return null; // 가격 조건 없음
+        return null;
     }
 
+    /**
+     * 거래 유형 + 가격 범위
+     */
     private static Predicate buildTypeWithRange(
             jakarta.persistence.criteria.CriteriaBuilder cb,
             jakarta.persistence.criteria.Root<Land> root,
-            Land.TransactionType type, Long min, Long max
+            Land.TransactionType type,
+            Long min,
+            Long max
     ) {
-        Predicate typePredicate = cb.equal(root.get("transactionType"), type);
-        Predicate rangePredicate = buildRangePredicate(cb, root, min, max);
-        return rangePredicate != null ? cb.and(typePredicate, rangePredicate) : typePredicate;
+
+        Predicate typePredicate =
+                cb.equal(
+                        root.get("transactionType"),
+                        type
+                );
+
+        Predicate rangePredicate =
+                buildRangePredicate(
+                        cb,
+                        root,
+                        min,
+                        max
+                );
+
+        return rangePredicate != null
+                ? cb.and(typePredicate, rangePredicate)
+                : typePredicate;
     }
 
+    /**
+     * 가격 범위
+     */
     private static Predicate buildRangePredicate(
             jakarta.persistence.criteria.CriteriaBuilder cb,
             jakarta.persistence.criteria.Root<Land> root,
-            Long min, Long max
+            Long min,
+            Long max
     ) {
-        if (min == null && max == null) return null;
-        if (min != null && max != null) {
-            return cb.between(root.get("desiredPrice"), min, max);
-        }
-        if (min != null) {
-            return cb.greaterThanOrEqualTo(root.get("desiredPrice"), min);
+
+        if (min == null && max == null) {
+            return null;
         }
 
-        return cb.lessThanOrEqualTo(root.get("desiredPrice"), max);
+        // 최소 + 최대
+        if (min != null && max != null) {
+            return cb.between(
+                    root.get("desiredPrice"),
+                    min,
+                    max
+            );
+        }
+
+        // 최소만
+        if (min != null) {
+            return cb.greaterThanOrEqualTo(
+                    root.get("desiredPrice"),
+                    min
+            );
+        }
+
+        // 최대만
+        return cb.lessThanOrEqualTo(
+                root.get("desiredPrice"),
+                max
+        );
     }
 }

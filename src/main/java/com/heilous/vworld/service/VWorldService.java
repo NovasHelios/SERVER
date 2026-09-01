@@ -117,11 +117,17 @@ public class VWorldService {
 
         // 4. 응답 조합
         KakaoAddressResponse.RoadAddress roadAddress = doc.getRoadAddress();
+
+        Double x = null;
+        Double y = null;
+        try { x = doc.getX() != null ? Double.parseDouble(doc.getX()) : null; } catch (NumberFormatException ignored) {}
+        try { y = doc.getY() != null ? Double.parseDouble(doc.getY()) : null; } catch (NumberFormatException ignored) {}
+
         return AddressLandResponse.builder()
                 .pnu(pnu)
                 .addressName(doc.getAddressName())
-                .x(doc.getX())
-                .y(doc.getY())
+                .x(x)
+                .y(y)
                 .zoneNo(roadAddress != null ? roadAddress.getZoneNo() : null)
                 .buildingName(roadAddress != null ? roadAddress.getBuildingName() : null)
                 .landInfo(landInfo)
