@@ -33,6 +33,11 @@ public class SecurityConfig {
     }
 
     @Bean
+    public org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer webSecurityCustomizer() {
+        return web -> web.ignoring().requestMatchers("/uploads/**");
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
@@ -50,8 +55,7 @@ public class SecurityConfig {
                                 "/login/oauth2/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/api/vworld/**",
-                                "/uploads/**"
+                                "/api/vworld/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/lands/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/lands", "/api/lands/**").permitAll()
