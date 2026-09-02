@@ -1,5 +1,6 @@
 package com.heilous.global.auth;
 
+import com.heilous.common.exception.CustomException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,6 +10,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 import java.util.List;
@@ -17,6 +19,7 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
+    private final HandlerExceptionResolver handlerExceptionResolver;
 
     @Override
     protected void doFilterInternal(
@@ -25,32 +28,37 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String bearerToken =
-                request.getHeader("Authorization");
+        try {
+            String bearerToken = request.getHeader("Authorization");
 
-        if (bearerToken != null &&
-                bearerToken.startsWith("Bearer ")) {
+            if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
 
-            String token =
-                    bearerToken.substring(7);
+                String token = bearerToken.substring(7);
 
-            if (jwtProvider.validateToken(token)) {
+                if (jwtProvider.validateToken(token)) {
 
-                String email = jwtProvider.getEmail(token);
-                String role = jwtProvider.getRole(token);
+                    String email = jwtProvider.getEmail(token);
+                    String role = jwtProvider.getRole(token);
 
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(
-                                email,
-                                null,
-                                List.of(new SimpleGrantedAuthority("ROLE_" + role))
-                        );
+                    UsernamePasswordAuthenticationToken auth =
+                            new UsernamePasswordAuthenticationToken(
+                                    email,
+                                    null,
+                                    List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                            );
 
-                SecurityContextHolder.getContext()
-                        .setAuthentication(auth);
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
             }
-        }
 
-        filterChain.doFilter(request, response);
+            filterChain.doFilter(request, response);
+
+        } catch (CustomException e) {
+            SecurityContextHolder.clearContext();
+            handlerExceptionResolver.resolveException(request, response, null, e);
+        } catch (Exception e) {
+            SecurityContextHolder.clearContext();
+            handlerExceptionResolver.resolveException(request, response, null, e);
+        }
     }
 }
