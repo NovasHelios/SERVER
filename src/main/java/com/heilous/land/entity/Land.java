@@ -74,7 +74,7 @@ public class Land extends BaseEntity {
     @Column(nullable = false)
     private Double y;
 
-    @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<LandImage> landImages = new ArrayList<>();
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
