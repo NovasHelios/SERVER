@@ -51,7 +51,11 @@ public class ImageStorageService {
             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
 
+        log.info("🔥 store 호출: {}", file.getOriginalFilename());
+
         String uniqueFilename = UUID.randomUUID() + extension;
+
+        log.info("🔥 UUID 생성: {}", uniqueFilename);
 
         try {
             Path targetDir = Paths.get(uploadDir, subDir);

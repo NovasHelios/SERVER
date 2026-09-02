@@ -19,11 +19,14 @@ import com.heilous.vworld.dto.AddressLandResponse;
 import com.heilous.vworld.dto.VWorldLandResponse;
 import com.heilous.vworld.service.VWorldService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LandService {
@@ -120,7 +123,12 @@ public class LandService {
         landRepository.save(land);
 
         // 이미지 저장
+
+        log.info("🔥 registerLand 호출");
+        log.info("🔥 images.size = {}", images == null ? null : images.size());
         for (MultipartFile image : validImages) {
+
+            log.info("🔥 이미지 저장 시작: {}", image.getOriginalFilename());
             String filename = imageStorageService.store(image, "lands");
             LandImage landImage = LandImage.builder()
                     .land(land)
