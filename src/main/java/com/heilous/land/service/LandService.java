@@ -123,12 +123,7 @@ public class LandService {
         landRepository.save(land);
 
         // 이미지 저장
-
-        log.info("🔥 registerLand 호출");
-        log.info("🔥 images.size = {}", images == null ? null : images.size());
         for (MultipartFile image : validImages) {
-
-            log.info("🔥 이미지 저장 시작: {}", image.getOriginalFilename());
             String filename = imageStorageService.store(image, "lands");
             LandImage landImage = LandImage.builder()
                     .land(land)
