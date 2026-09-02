@@ -289,6 +289,15 @@ public class LandService {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
 
+        // 이미지 파일 삭제
+        land.getLandImages().forEach(img ->
+                imageStorageService.delete(img.getImagePath(), "lands"));
+
+        // 증명서 파일 삭제
+        if (land.getDocumentPath() != null) {
+            imageStorageService.delete(land.getDocumentPath(), "documents");
+        }
+
         landRepository.delete(land);
     }
 
