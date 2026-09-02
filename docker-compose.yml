@@ -40,7 +40,7 @@ services:
       DB_URL: jdbc:mysql://mysql:3306/solar_platform?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
       REDIS_HOST: redis
     volumes:
-      - ./uploads:/uploads
+      - ../uploads:/uploads
     depends_on:
       mysql:
         condition: service_healthy
