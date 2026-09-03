@@ -94,7 +94,8 @@ public class Land extends BaseEntity {
 
     public enum TransactionType {
         SALE,
-        LEASE
+        LEASE,
+        BUSINESS
     }
 
     public void updateLand(String address, Double area, String lcCode, String lcCodeNm,

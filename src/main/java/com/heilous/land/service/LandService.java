@@ -112,7 +112,8 @@ public class LandService {
                 .regionSido(regions[0])
                 .regionSigungu(regions[1])
                 .regionEupmyeondong(regions[2])
-                .desiredPrice(request.getDesiredPrice())
+                .desiredPrice(request.getTransactionType() == Land.TransactionType.BUSINESS
+                        ? null : request.getDesiredPrice())
                 .description(request.getDescription())
                 .transactionType(request.getTransactionType())
                 .status(Land.LandStatus.PENDING)

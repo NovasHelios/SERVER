@@ -152,6 +152,11 @@ public class LandSpecification {
                             filter.getTransactionType()
                     );
 
+            // BUSINESS는 가격 조건 없음
+            if (filter.getTransactionType() == Land.TransactionType.BUSINESS) {
+                return typePredicate;
+            }
+
             Predicate rangePredicate;
 
             if (filter.getTransactionType() ==
@@ -206,7 +211,7 @@ public class LandSpecification {
             );
         }
 
-        // SALE 가격 조건만 있음
+        // SALE 가격 조건만 있음 → SALE은 범위 적용, LEASE/BUSINESS는 필터 없이 전부
         if (hasSalePrice) {
 
             Predicate saleBlock =
@@ -218,19 +223,13 @@ public class LandSpecification {
                             filter.getSaleMaxPrice()
                     );
 
-            Predicate leaseAll =
-                    cb.equal(
-                            root.get("transactionType"),
-                            Land.TransactionType.LEASE
-                    );
+            Predicate leaseAll = cb.equal(root.get("transactionType"), Land.TransactionType.LEASE);
+            Predicate businessAll = cb.equal(root.get("transactionType"), Land.TransactionType.BUSINESS);
 
-            return cb.or(
-                    saleBlock,
-                    leaseAll
-            );
+            return cb.or(saleBlock, leaseAll, businessAll);
         }
 
-        // LEASE 가격 조건만 있음
+        // LEASE 가격 조건만 있음 → LEASE는 범위 적용, SALE/BUSINESS는 필터 없이 전부
         if (hasLeasePrice) {
 
             Predicate leaseBlock =
@@ -242,16 +241,10 @@ public class LandSpecification {
                             filter.getLeaseMaxPrice()
                     );
 
-            Predicate saleAll =
-                    cb.equal(
-                            root.get("transactionType"),
-                            Land.TransactionType.SALE
-                    );
+            Predicate saleAll = cb.equal(root.get("transactionType"), Land.TransactionType.SALE);
+            Predicate businessAll = cb.equal(root.get("transactionType"), Land.TransactionType.BUSINESS);
 
-            return cb.or(
-                    leaseBlock,
-                    saleAll
-            );
+            return cb.or(leaseBlock, saleAll, businessAll);
         }
 
         return null;
