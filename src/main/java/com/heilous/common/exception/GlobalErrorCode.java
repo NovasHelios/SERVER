@@ -13,6 +13,7 @@ public enum GlobalErrorCode {
     EMAIL_ALREADY_EXISTS(409, "AUTH_003", "이미 가입된 이메일입니다."),
     EMAIL_VERIFICATION_FAILED(400, "AUTH_004", "이메일 인증 코드가 일치하지 않습니다."),
     INVALID_INPUT(400, "AUTH_005", "잘못된 입력입니다."),
+    UNAUTHORIZED(401, "AUTH_009", "로그인이 필요합니다."),
 
     // 사용자/사업자 에러
     USER_NOT_FOUND(404, "USER_001", "사용자를 찾을 수 없습니다."),
@@ -42,7 +43,13 @@ public enum GlobalErrorCode {
     // 파일 업로드 에러
     INVALID_IMAGE_TYPE(400, "FILE_001", "허용되지 않는 이미지 형식입니다. (jpg, png, webp, gif만 허용)"),
     INVALID_DOCUMENT_TYPE(400, "FILE_003", "허용되지 않는 문서 형식입니다. (pdf, jpg, png만 허용)"),
-    FILE_UPLOAD_FAILED(500, "FILE_002", "파일 저장 중 오류가 발생했습니다.");
+    FILE_UPLOAD_FAILED(500, "FILE_002", "파일 저장 중 오류가 발생했습니다."),
+    LAND_IMAGE_REQUIRED(400, "FILE_004", "토지 이미지는 최소 3장 이상 등록해야 합니다."),
+    LAND_IMAGE_MAX_EXCEEDED(400, "FILE_005", "토지 이미지는 최대 5장까지 등록할 수 있습니다."),
+    LAND_IMAGE_NOT_FOUND(404, "FILE_006", "해당 토지 이미지를 찾을 수 없습니다."),
+
+    // 데이터 무결성 에러
+    DATA_INTEGRITY_VIOLATION(409, "DATA_001", "데이터 무결성 오류가 발생했습니다. 연관된 데이터를 확인해주세요.");
 
     private final int status;
     private final String code;

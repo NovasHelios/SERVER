@@ -18,4 +18,7 @@ public interface LandRepository extends JpaRepository<Land, Long>, JpaSpecificat
     List<Land> findByStatusOrderByIdDesc(@Param("status") LandStatus status);
 
     boolean existsByAddress(String address);
+
+    @Query("select l from Land l join fetch l.owner where l.owner.email = :email order by l.id desc")
+    List<Land> findByOwnerEmailOrderByIdDesc(@Param("email") String email);
 }

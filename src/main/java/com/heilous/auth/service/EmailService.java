@@ -72,7 +72,7 @@ public class EmailService {
             javaMailSender.send(mimeMessage);
 
         } catch (Exception e) {
-            throw new RuntimeException("메일 전송 실패");
+            throw new RuntimeException("메일 전송 실패",e);
         }
 
         redisTemplate.opsForValue().set(

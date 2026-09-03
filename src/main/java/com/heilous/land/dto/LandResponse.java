@@ -4,6 +4,8 @@ import com.heilous.land.entity.Land;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.List;
+
 @Getter
 @Builder
 public class LandResponse {
@@ -28,10 +30,10 @@ public class LandResponse {
 
     private String status;
     private String transactionType;
-    private String landImagePath;
+    private List<String> landImagePaths;
     private String documentPath;
-    private String x;
-    private String y;
+    private Double x;
+    private Double y;
 
     public static LandResponse from(Land land) {
         return LandResponse.builder()
@@ -51,9 +53,11 @@ public class LandResponse {
                 .regionEupmyeondong(land.getRegionEupmyeondong())
                 .desiredPrice(land.getDesiredPrice())
                 .description(land.getDescription())
-                .status(land.getStatus().name())
+                .status(land.getStatus() != null ? land.getStatus().name() : null)
                 .transactionType(land.getTransactionType() != null ? land.getTransactionType().name() : null)
-                .landImagePath(land.getLandImagePath())
+                .landImagePaths(land.getLandImages().stream()
+                        .map(img -> img.getImagePath())
+                        .toList())
                 .documentPath(land.getDocumentPath())
                 .x(land.getX())
                 .y(land.getY())

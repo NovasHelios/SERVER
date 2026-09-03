@@ -1,9 +1,14 @@
 package com.heilous.land.entity;
 
+import com.heilous.apply.entity.LandApply;
+import com.heilous.chat.entity.ChatRoom;
 import com.heilous.common.entity.BaseEntity;
 import com.heilous.user.entity.User;
-import jakarta.persistence.*;
+import com.heilous.wish.entity.Wish;import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "lands", indexes = {
@@ -61,13 +66,25 @@ public class Land extends BaseEntity {
     @Column(nullable = false)
     private TransactionType transactionType;
 
-    private String landImagePath; // 토지 이미지 파일명
-
     private String documentPath;  // 증명서 파일명
 
-    private String x; // 경도(Longitude)
+    @Column(nullable = false)
+    private Double x;
 
-    private String y; // 위도(Latitude)
+    @Column(nullable = false)
+    private Double y;
+
+    @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<LandImage> landImages = new ArrayList<>();
+
+    @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Wish> wishes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<LandApply> landApplies = new ArrayList<>();
+
+    @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<ChatRoom> chatRooms = new ArrayList<>();
 
     public enum LandStatus {
         PENDING,
@@ -84,7 +101,7 @@ public class Land extends BaseEntity {
                            String lastUpdtDt, String regstrSeCodeNm, String cnrsPsnCo, String pnu,
                            String ldCodeNm, String regionSido, String regionSigungu, String regionEupmyeondong,
                            Long desiredPrice, String description, TransactionType transactionType,
-                           String x, String y) {
+                           Double x, Double y) {
         this.address = address;
         this.area = area;
         this.lcCode = lcCode;
@@ -110,8 +127,12 @@ public class Land extends BaseEntity {
         this.status = status;
     }
 
-    public void updateImagePath(String landImagePath) {
-        this.landImagePath = landImagePath;
+    public void addImage(LandImage image) {
+        this.landImages.add(image);
+    }
+
+    public void removeImage(LandImage image) {
+        this.landImages.remove(image);
     }
 
     public void updateDocumentPath(String documentPath) {
