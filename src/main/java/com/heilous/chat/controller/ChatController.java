@@ -23,6 +23,11 @@ public class ChatController {
     @PostMapping public APIResponse<ChatRoomResponse> create(@Valid @RequestBody CreateChatRoomRequest request, @AuthenticationPrincipal String email) { return APIResponse.ok(chatService.createRoom(request.getLandId(), request.getInitialMessage(), email)); }
     @GetMapping public APIResponse<List<ChatRoomResponse>> list(@AuthenticationPrincipal String email) { return APIResponse.ok(chatService.getRooms(email)); }
     @GetMapping("/{roomId}/messages") public APIResponse<List<ChatMessageResponse>> messages(@PathVariable Long roomId, @AuthenticationPrincipal String email) { return APIResponse.ok(chatService.getMessages(roomId, email)); }
+    @PostMapping("/{roomId}/messages") public APIResponse<ChatMessageResponse> sendMessage(@PathVariable Long roomId, @Valid @RequestBody ChatMessageRequest request, @AuthenticationPrincipal String email) {
+        ChatMessageResponse response = chatService.sendMessage(roomId, email, request.getContent());
+        messagingTemplate.convertAndSend("/topic/chat/rooms/" + roomId, response);
+        return APIResponse.ok(response);
+    }
     @PostMapping(value = "/{roomId}/attachments", consumes = "multipart/form-data") public APIResponse<ChatMessageResponse> attachment(@PathVariable Long roomId, @RequestPart("file") MultipartFile file, @AuthenticationPrincipal String email) {
         ChatMessageResponse response = chatService.sendAttachment(roomId, email, file);
         messagingTemplate.convertAndSend("/topic/chat/rooms/" + roomId, response);
