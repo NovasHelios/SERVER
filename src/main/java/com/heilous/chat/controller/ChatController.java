@@ -9,6 +9,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -33,9 +35,17 @@ public class ChatController {
     @GetMapping public APIResponse<List<ChatRoomResponse>> list(@AuthenticationPrincipal String email) { return APIResponse.ok(chatService.getRooms(email)); }
     @Operation(
             summary = "채팅 메시지 목록 조회",
-            description = "특정 채팅방의 전체 메시지 이력을 조회합니다. 해당 채팅방의 참여자만 조회할 수 있습니다."
+            description = "특정 채팅방의 메시지를 커서 기반으로 페이지네이션 조회합니다. cursorId 미전달 시 최신 메시지부터 반환합니다. 다음 페이지 요청 시 마지막 메시지의 messageId를 cursorId로 전달하세요."
     )
-    @GetMapping("/{roomId}/messages") public APIResponse<List<ChatMessageResponse>> messages(@PathVariable Long roomId, @AuthenticationPrincipal String email) { return APIResponse.ok(chatService.getMessages(roomId, email)); }
+    @GetMapping("/{roomId}/messages")
+    public APIResponse<List<ChatMessageResponse>> messages(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal String email,
+            @RequestParam(required = false, defaultValue = "0") Long cursorId,
+            @RequestParam(required = false, defaultValue = "50") @Min(1) @Max(100) int size
+    ) {
+        return APIResponse.ok(chatService.getMessages(roomId, email, cursorId, size));
+    }
     @PostMapping("/{roomId}/messages") public APIResponse<ChatMessageResponse> sendMessage(@PathVariable Long roomId, @Valid @RequestBody ChatMessageRequest request, @AuthenticationPrincipal String email) {
         ChatMessageResponse response = chatService.sendMessage(roomId, email, request.getContent());
         messagingTemplate.convertAndSend("/topic/chat/rooms/" + roomId, response);
