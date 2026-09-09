@@ -3,27 +3,35 @@ package com.heilous.land.service;
 import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
 import com.heilous.common.service.ImageStorageService;
+import com.heilous.land.dto.LandDetailResponse;
 import com.heilous.land.dto.LandFilterRequest;
 import com.heilous.land.dto.LandRegisterRequest;
 import com.heilous.land.dto.LandResponse;
 import com.heilous.land.dto.LandUpdateRequest;
 import com.heilous.land.entity.Land;
+import com.heilous.land.entity.LandEtc;
 import com.heilous.land.entity.LandImage;
+import com.heilous.land.entity.LandZone;
 import com.heilous.land.repository.LandImageRepository;
 import com.heilous.land.repository.LandRepository;
 import com.heilous.land.repository.LandSpecification;
+import com.heilous.land.repository.LandZoneRepository;
+import com.heilous.land.repository.LandEtcRepository;
 import com.heilous.user.entity.User;
 import com.heilous.user.enums.UserRole;
 import com.heilous.user.repository.UserRepository;
 import com.heilous.vworld.dto.AddressLandResponse;
 import com.heilous.vworld.dto.VWorldLandResponse;
+import com.heilous.vworld.dto.VWorldWfsResponse;
 import com.heilous.vworld.service.VWorldService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -33,9 +41,12 @@ public class LandService {
 
     private final LandRepository landRepository;
     private final LandImageRepository landImageRepository;
+    private final LandZoneRepository landZoneRepository;
+    private final LandEtcRepository landEtcRepository;
     private final UserRepository userRepository;
     private final VWorldService vWorldService;
     private final ImageStorageService imageStorageService;
+    private final ObjectMapper objectMapper;
 
     // 토지 등록
     @Transactional
@@ -123,6 +134,11 @@ public class LandService {
 
         landRepository.save(land);
 
+        // WFS: 용도지역/지구/기타 조회 및 저장
+        if (pnu != null) {
+            applyLandUseInfo(land, pnu);
+        }
+
         // 이미지 저장
         for (MultipartFile image : validImages) {
             String filename = imageStorageService.store(image, "lands");
@@ -151,13 +167,17 @@ public class LandService {
 
     // 상세 조회
     @Transactional(readOnly = true)
-    public LandResponse getLand(Long landId) {
+    public LandDetailResponse getLand(Long landId) {
 
-        Land land = landRepository.findById(landId)
-                .orElseThrow(() ->
-                        new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
+        // MultipleBagFetchException 방지: 컬렉션별 쿼리 분리
+        Land land = landRepository.findWithImagesById(landId)
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
 
-        return LandResponse.from(land);
+        // zones, etcs는 별도 쿼리로 로딩 (hibernate 1차 캐시로 같은 엔티티에 merge됨)
+        landRepository.findWithZonesById(landId);
+        landRepository.findWithEtcsById(landId);
+
+        return LandDetailResponse.from(land);
     }
 
     // 필터 조회
@@ -190,6 +210,88 @@ public class LandService {
         if (parts.length > 1) result[1] = parts[1];
         if (parts.length > 2) result[2] = parts[2];
         return result;
+    }
+
+    /**
+     * WFS 결과를 파싱해 Land 엔티티에 용도지역/지구/기타 정보를 저장
+     */
+    private void applyLandUseInfo(Land land, String pnu) {
+        try {
+            VWorldWfsResponse wfs = vWorldService.getLandUseByPnu(pnu);
+            if (wfs == null || wfs.getFeatures() == null || wfs.getFeatures().isEmpty()) return;
+
+            VWorldWfsResponse.Feature feature = wfs.getFeatures().get(0);
+            VWorldWfsResponse.Properties props = feature.getProperties();
+
+            if (props == null || props.getPrposAreaDstrcCodeList() == null) return;
+
+            String[] codes   = props.getPrposAreaDstrcCodeList().split(",");
+            String[] cnflcs  = props.getCnflcAtList() != null
+                    ? props.getCnflcAtList().split(",") : new String[0];
+            String[] cnflcNms = props.getCnflcAtNmList() != null
+                    ? props.getCnflcAtNmList().split(",") : new String[0];
+
+            // 좌표 JSON 직렬화
+            String coordinatesJson = null;
+            if (feature.getGeometry() != null && feature.getGeometry().getCoordinates() != null) {
+                coordinatesJson = objectMapper.writeValueAsString(feature.getGeometry().getCoordinates());
+            }
+
+            String prposAreaCode = null, prposAreaCnflcAt = null, prposAreaCnflcAtNm = null;
+
+            List<LandZone> zones = new ArrayList<>();
+            List<LandEtc> etcs  = new ArrayList<>();
+
+            for (int i = 0; i < codes.length; i++) {
+                String code     = codes[i].trim();
+                String cnflc    = i < cnflcs.length  ? cnflcs[i].trim()   : null;
+                String cnflcNm  = i < cnflcNms.length ? cnflcNms[i].trim() : null;
+
+                if (isZoneCode(code)) {         // UQA~UQE: 용도지역
+                    if (prposAreaCode == null) {
+                        prposAreaCode = code;
+                        prposAreaCnflcAt = cnflc;
+                        prposAreaCnflcAtNm = cnflcNm;
+                    }
+                } else if (isDistrictCode(code)) { // UQF~UQP: 용도지구
+                    zones.add(LandZone.builder()
+                            .land(land)
+                            .code(code)
+                            .cnflcAt(cnflc)
+                            .cnflcAtNm(cnflcNm)
+                            .build());
+                } else {                           // 나머지: 기타
+                    etcs.add(LandEtc.builder()
+                            .land(land)
+                            .code(code)
+                            .cnflcAt(cnflc)
+                            .cnflcAtNm(cnflcNm)
+                            .build());
+                }
+            }
+
+            land.updateLandUse(prposAreaCode, prposAreaCnflcAt, prposAreaCnflcAtNm, coordinatesJson);
+
+            if (!zones.isEmpty()) landZoneRepository.saveAll(zones);
+            if (!etcs.isEmpty())  landEtcRepository.saveAll(etcs);
+
+        } catch (Exception e) {
+            log.warn("WFS 용도지역 정보 저장 실패 (pnu={}): {}", pnu, e.getMessage());
+        }
+    }
+
+    /** UQA ~ UQE: 용도지역 */
+    private boolean isZoneCode(String code) {
+        if (code == null || code.length() < 3) return false;
+        String prefix = code.substring(0, 3).toUpperCase();
+        return prefix.compareTo("UQA") >= 0 && prefix.compareTo("UQF") < 0;
+    }
+
+    /** UQF ~ UQP: 용도지구 */
+    private boolean isDistrictCode(String code) {
+        if (code == null || code.length() < 3) return false;
+        String prefix = code.substring(0, 3).toUpperCase();
+        return prefix.compareTo("UQF") >= 0 && prefix.compareTo("UQQ") < 0;
     }
 
     // 토지 수정
@@ -262,6 +364,13 @@ public class LandService {
                 addressLandResponse.getX(),
                 addressLandResponse.getY()
         );
+
+        // WFS: 용도지역/지구/기타 재조회
+        if (pnu != null) {
+            landZoneRepository.deleteByLandId(land.getId());
+            landEtcRepository.deleteByLandId(land.getId());
+            applyLandUseInfo(land, pnu);
+        }
     }
 
     // 토지 삭제
