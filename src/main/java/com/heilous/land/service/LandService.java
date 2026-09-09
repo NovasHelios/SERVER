@@ -161,7 +161,7 @@ public class LandService {
 
         return landRepository.findAllByOrderByIdDesc()
                 .stream()
-                .map(LandResponse::from)
+                .map(l -> LandResponse.from(l, objectMapper))
                 .toList();
     }
 
@@ -187,7 +187,7 @@ public class LandService {
         return landRepository
                 .findAll(LandSpecification.buildFilter(filter))
                 .stream()
-                .map(LandResponse::from)
+                .map(l -> LandResponse.from(l, objectMapper))
                 .toList();
     }
 
@@ -196,7 +196,7 @@ public class LandService {
     public List<LandResponse> getMyLands(String email) {
         return landRepository.findByOwnerEmailOrderByIdDesc(email)
                 .stream()
-                .map(LandResponse::from)
+                .map(l -> LandResponse.from(l, objectMapper))
                 .toList();
     }
 

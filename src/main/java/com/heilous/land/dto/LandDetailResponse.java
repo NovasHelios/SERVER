@@ -38,7 +38,6 @@ public class LandDetailResponse {
     // 좌표
     private Double x;
     private Double y;
-    private String coordinates; // MultiPolygon JSON
 
     // 용도지역
     private String prposAreaCode;
@@ -109,7 +108,6 @@ public class LandDetailResponse {
                 .transactionType(land.getTransactionType() != null ? land.getTransactionType().name() : null)
                 .x(land.getX())
                 .y(land.getY())
-                .coordinates(land.getCoordinates())
                 .prposAreaCode(land.getPrposAreaCode())
                 .prposAreaCnflcAt(land.getPrposAreaCnflcAt())
                 .prposAreaCnflcAtNm(land.getPrposAreaCnflcAtNm())
