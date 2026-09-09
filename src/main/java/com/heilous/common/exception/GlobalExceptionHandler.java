@@ -20,6 +20,8 @@ public class GlobalExceptionHandler {
 
         GlobalErrorCode errorCode = e.getErrorCode();
 
+        e.printStackTrace();
+
         ErrorResponse errorResponse =
                 ErrorResponse.of(
                         errorCode.getCode(),

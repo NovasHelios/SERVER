@@ -74,6 +74,22 @@ public class Land extends BaseEntity {
     @Column(nullable = false)
     private Double y;
 
+    // ── 용도지역 (UQA~UQE) ──────────────────────────────────────
+    private String prposAreaCode;   // 코드 (예: UQA01X)
+    @Column(length = 1)
+    private String prposAreaCnflcAt;     // 저촉여부 코드
+    private String prposAreaCnflcAtNm;   // 저촉여부 명칭
+
+    // ── 좌표 (MultiPolygon JSON) ─────────────────────────────────
+    @Column(columnDefinition = "LONGTEXT")
+    private String coordinates;
+
+    @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LandZone> landZones = new ArrayList<>();
+
+    @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LandEtc> landEtcs = new ArrayList<>();
+
     @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<LandImage> landImages = new ArrayList<>();
 
@@ -94,7 +110,8 @@ public class Land extends BaseEntity {
 
     public enum TransactionType {
         SALE,
-        LEASE
+        LEASE,
+        BUSINESS
     }
 
     public void updateLand(String address, Double area, String lcCode, String lcCodeNm,
@@ -121,6 +138,15 @@ public class Land extends BaseEntity {
         if (transactionType != null) {
             this.transactionType = transactionType;
         }
+    }
+
+    public void updateLandUse(String prposAreaCode,
+                              String prposAreaCnflcAt, String prposAreaCnflcAtNm,
+                              String coordinates) {
+        this.prposAreaCode = prposAreaCode;
+        this.prposAreaCnflcAt = prposAreaCnflcAt;
+        this.prposAreaCnflcAtNm = prposAreaCnflcAtNm;
+        this.coordinates = coordinates;
     }
 
     public void changeStatus(LandStatus status) {

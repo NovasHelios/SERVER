@@ -1,6 +1,7 @@
 package com.heilous.land.controller;
 
 import com.heilous.common.dto.APIResponse;
+import com.heilous.land.dto.LandDetailResponse;
 import com.heilous.land.dto.LandFilterRequest;
 import com.heilous.land.dto.LandRegisterRequest;
 import com.heilous.land.dto.LandResponse;
@@ -71,10 +72,10 @@ public class LandController {
 
     @Operation(
             summary = "토지 상세 조회",
-            description = "토지 ID로 특정 토지의 상세 정보를 조회합니다. 면적, 지목, 법정동, 좌표, 희망가격 등 모든 필드를 반환합니다. 로그인 없이 조회 가능합니다."
+            description = "토지 ID로 특정 토지의 상세 정보를 조회합니다. 면적, 지목, 법정동, 좌표, 용도지역, 용도지구, 기타 규제, 이미지 등 모든 필드를 반환합니다. 로그인 없이 조회 가능합니다."
     )
     @GetMapping("/{landId}")
-    public APIResponse<LandResponse> getLand(
+    public APIResponse<LandDetailResponse> getLand(
             @PathVariable Long landId
     ) {
 

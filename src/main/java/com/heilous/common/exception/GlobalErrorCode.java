@@ -49,7 +49,10 @@ public enum GlobalErrorCode {
     LAND_IMAGE_NOT_FOUND(404, "FILE_006", "해당 토지 이미지를 찾을 수 없습니다."),
 
     // 데이터 무결성 에러
-    DATA_INTEGRITY_VIOLATION(409, "DATA_001", "데이터 무결성 오류가 발생했습니다. 연관된 데이터를 확인해주세요.");
+    DATA_INTEGRITY_VIOLATION(409, "DATA_001", "데이터 무결성 오류가 발생했습니다. 연관된 데이터를 확인해주세요."),
+
+    // 서버 에러
+    INTERNAL_SERVER_ERROR(500, "SERVER_001", "서버 오류가 발생했습니다.");
 
     private final int status;
     private final String code;

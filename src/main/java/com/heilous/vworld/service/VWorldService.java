@@ -7,6 +7,7 @@ import com.heilous.vworld.dto.AddressLandResponse;
 import com.heilous.vworld.dto.KakaoAddressResponse;
 import com.heilous.vworld.dto.VWorldLandRequest;
 import com.heilous.vworld.dto.VWorldLandResponse;
+import com.heilous.vworld.dto.VWorldWfsResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +35,7 @@ public class VWorldService {
     private String apiDomain;
 
     private static final String API_URL = "http://api.vworld.kr/ned/data/ladfrlList";
+    private static final String WFS_URL = "http://api.vworld.kr/ned/wfs/getLandUseWFS";
 
     public VWorldLandResponse getLandInfo(VWorldLandRequest request) {
         try {
@@ -132,5 +134,60 @@ public class VWorldService {
                 .buildingName(roadAddress != null ? roadAddress.getBuildingName() : null)
                 .landInfo(landInfo)
                 .build();
+    }
+
+    /**
+     * PNU로 토지 이용 계획(용도지역/지구/기타) 조회 (WFS)
+     */
+    public VWorldWfsResponse getLandUseByPnu(String pnu) {
+        try {
+            String urlString = UriComponentsBuilder.fromHttpUrl(WFS_URL)
+                    .queryParam("key", apiKey)
+                    .queryParam("domain", apiDomain)
+                    .queryParam("typename", "dt_d154")
+                    .queryParam("pnu", pnu)
+                    .queryParam("maxFeatures", "1")
+                    .queryParam("resultType", "results")
+                    .queryParam("srsName", "EPSG:4326")
+                    .queryParam("output", "application/json")
+                    .build()
+                    .toUriString();
+
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(5_000);
+            conn.setReadTimeout(10_000);
+
+            int responseCode = conn.getResponseCode();
+            log.info("VWorld WFS API Response code: {}", responseCode);
+
+            BufferedReader rd;
+            if (responseCode >= 200 && responseCode <= 300) {
+                rd = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)
+                );
+            } else {
+                rd = new BufferedReader(
+                        new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8)
+                );
+            }
+
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = rd.readLine()) != null) {
+                sb.append(line);
+            }
+            rd.close();
+            conn.disconnect();
+
+            return objectMapper.readValue(sb.toString(), VWorldWfsResponse.class);
+
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("VWorld WFS API 호출 실패", e);
+            return null; // WFS 실패 시 토지 등록은 계속 진행
+        }
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface LandRepository extends JpaRepository<Land, Long>, JpaSpecificationExecutor<Land> {
 
@@ -21,4 +22,13 @@ public interface LandRepository extends JpaRepository<Land, Long>, JpaSpecificat
 
     @Query("select l from Land l join fetch l.owner where l.owner.email = :email order by l.id desc")
     List<Land> findByOwnerEmailOrderByIdDesc(@Param("email") String email);
+
+    @Query("select l from Land l join fetch l.owner left join fetch l.landImages where l.id = :id")
+    Optional<Land> findWithImagesById(@Param("id") Long id);
+
+    @Query("select l from Land l left join fetch l.landZones where l.id = :id")
+    Optional<Land> findWithZonesById(@Param("id") Long id);
+
+    @Query("select l from Land l left join fetch l.landEtcs where l.id = :id")
+    Optional<Land> findWithEtcsById(@Param("id") Long id);
 }

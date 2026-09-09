@@ -1,6 +1,7 @@
 package com.heilous.global.auth;
 
 import com.heilous.common.exception.CustomException;
+import com.heilous.common.exception.GlobalErrorCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,7 +11,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 import java.util.List;
@@ -19,7 +19,6 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
-    private final HandlerExceptionResolver handlerExceptionResolver;
 
     @Override
     protected void doFilterInternal(
@@ -55,10 +54,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         } catch (CustomException e) {
             SecurityContextHolder.clearContext();
-            handlerExceptionResolver.resolveException(request, response, null, e);
+            writeErrorResponse(response, e.getErrorCode());
         } catch (Exception e) {
             SecurityContextHolder.clearContext();
-            handlerExceptionResolver.resolveException(request, response, null, e);
+            writeErrorResponse(response, GlobalErrorCode.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private void writeErrorResponse(HttpServletResponse response, GlobalErrorCode errorCode) throws IOException {
+        if (response.isCommitted()) return;
+        response.setStatus(errorCode.getStatus());
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write(
+                String.format(
+                        "{\"status\":%d,\"data\":{\"code\":\"%s\",\"message\":\"%s\"}}",
+                        errorCode.getStatus(), errorCode.getCode(), errorCode.getMessage()
+                )
+        );
     }
 }
