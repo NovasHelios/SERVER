@@ -16,7 +16,16 @@ repositories {
 	mavenCentral()
 }
 
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.ai:spring-ai-bom:1.0.0-M5"
+	}
+}
+
 dependencies {
+	// Spring AI OpenAI
+	implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
+
 	// OAuth2 Client (추가)
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 

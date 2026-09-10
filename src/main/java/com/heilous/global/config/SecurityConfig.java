@@ -61,6 +61,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/lands/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/lands", "/api/lands/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/lands/filter").permitAll()
+                        .requestMatchers("/api/ai/**").authenticated()
                         .anyRequest().authenticated()
                 )
 

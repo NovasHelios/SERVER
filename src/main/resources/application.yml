@@ -1,4 +1,12 @@
 spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o
+          temperature: 0.0   # 동일 질문 → 동일 답변 보장
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
