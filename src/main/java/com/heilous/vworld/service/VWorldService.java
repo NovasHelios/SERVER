@@ -5,6 +5,7 @@ import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
 import com.heilous.vworld.dto.AddressLandResponse;
 import com.heilous.vworld.dto.KakaoAddressResponse;
+import com.heilous.vworld.dto.PossessionAttrResponse;
 import com.heilous.vworld.dto.VWorldLandRequest;
 import com.heilous.vworld.dto.VWorldLandResponse;
 import com.heilous.vworld.dto.VWorldWfsResponse;
@@ -34,8 +35,9 @@ public class VWorldService {
     @Value("${vworld.api.domain:}")
     private String apiDomain;
 
-    private static final String API_URL = "http://api.vworld.kr/ned/data/ladfrlList";
-    private static final String WFS_URL = "http://api.vworld.kr/ned/wfs/getLandUseWFS";
+    private static final String API_URL        = "http://api.vworld.kr/ned/data/ladfrlList";
+    private static final String WFS_URL        = "http://api.vworld.kr/ned/wfs/getLandUseWFS";
+    private static final String POSSESSION_URL = "https://api.vworld.kr/ned/data/getPossessionAttr";
 
     public VWorldLandResponse getLandInfo(VWorldLandRequest request) {
         try {
@@ -134,6 +136,66 @@ public class VWorldService {
                 .buildingName(roadAddress != null ? roadAddress.getBuildingName() : null)
                 .landInfo(landInfo)
                 .build();
+    }
+
+    /**
+     * PNU로 토지 소유 속성 정보 조회 (공시지가 포함)
+     * VWorld getPossessionAttr API 호출
+     * numOfRows=1000으로 여러 연도치 데이터를 한 번에 조회합니다.
+     *
+     * @param pnu       필지고유번호 (19자리, 최소 8자리)
+     * @param numOfRows 조회 건수 (최대 1000)
+     * @return PossessionAttrResponse (공시지가, 지목, 면적 등 포함)
+     */
+    public PossessionAttrResponse getPossessionAttr(String pnu, int numOfRows) {
+        try {
+            String urlString = UriComponentsBuilder.fromHttpUrl(POSSESSION_URL)
+                    .queryParam("key", apiKey)
+                    .queryParam("domain", apiDomain)
+                    .queryParam("pnu", pnu)
+                    .queryParam("format", "json")
+                    .queryParam("numOfRows", numOfRows)
+                    .queryParam("pageNo", 1)
+                    .build()
+                    .toUriString();
+
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Content-type", "application/json");
+            conn.setConnectTimeout(5_000);
+            conn.setReadTimeout(10_000);
+
+            int responseCode = conn.getResponseCode();
+            log.info("VWorld PossessionAttr API Response code: {}", responseCode);
+
+            BufferedReader rd;
+            if (responseCode >= 200 && responseCode <= 300) {
+                rd = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)
+                );
+            } else {
+                rd = new BufferedReader(
+                        new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8)
+                );
+            }
+
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = rd.readLine()) != null) {
+                sb.append(line);
+            }
+            rd.close();
+            conn.disconnect();
+
+            return objectMapper.readValue(sb.toString(), PossessionAttrResponse.class);
+
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("VWorld PossessionAttr API 호출 실패", e);
+            throw new CustomException(GlobalErrorCode.EXTERNAL_API_ERROR);
+        }
     }
 
     /**
