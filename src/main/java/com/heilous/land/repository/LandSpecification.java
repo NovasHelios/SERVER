@@ -152,8 +152,8 @@ public class LandSpecification {
                             filter.getTransactionType()
                     );
 
-            // BUSINESS는 가격 조건 없음
-            if (filter.getTransactionType() == Land.TransactionType.BUSINESS) {
+            // BUSINESS_HOPE는 가격 조건 없음
+            if (filter.getTransactionType() == Land.TransactionType.BUSINESS_HOPE) {
                 return typePredicate;
             }
 
@@ -224,12 +224,12 @@ public class LandSpecification {
                     );
 
             Predicate leaseAll = cb.equal(root.get("transactionType"), Land.TransactionType.LEASE);
-            Predicate businessAll = cb.equal(root.get("transactionType"), Land.TransactionType.BUSINESS);
+            Predicate businessAll = cb.equal(root.get("transactionType"), Land.TransactionType.BUSINESS_HOPE);
 
             return cb.or(saleBlock, leaseAll, businessAll);
         }
 
-        // LEASE 가격 조건만 있음 → LEASE는 범위 적용, SALE/BUSINESS는 필터 없이 전부
+        // LEASE 가격 조건만 있음 → LEASE는 범위 적용, SALE/BUSINESS_HOPE는 필터 없이 전부
         if (hasLeasePrice) {
 
             Predicate leaseBlock =
@@ -242,7 +242,7 @@ public class LandSpecification {
                     );
 
             Predicate saleAll = cb.equal(root.get("transactionType"), Land.TransactionType.SALE);
-            Predicate businessAll = cb.equal(root.get("transactionType"), Land.TransactionType.BUSINESS);
+            Predicate businessAll = cb.equal(root.get("transactionType"), Land.TransactionType.BUSINESS_HOPE);
 
             return cb.or(leaseBlock, saleAll, businessAll);
         }

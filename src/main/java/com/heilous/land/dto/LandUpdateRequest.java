@@ -12,6 +12,8 @@ public class LandUpdateRequest {
 
     private Long desiredPrice;
 
+    private Double desiredArea;
+
     private String description;
 
     private Land.TransactionType transactionType;

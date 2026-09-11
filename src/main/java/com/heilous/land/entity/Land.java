@@ -56,6 +56,8 @@ public class Land extends BaseEntity {
 
     private Long desiredPrice;
 
+    private Double desiredArea;  // 희망 면적 (사용자 입력)
+
     @Column(length = 1000)
     private String description;
 
@@ -111,13 +113,13 @@ public class Land extends BaseEntity {
     public enum TransactionType {
         SALE,
         LEASE,
-        BUSINESS
+        BUSINESS_HOPE
     }
 
     public void updateLand(String address, Double area, String lcCode, String lcCodeNm,
                            String lastUpdtDt, String regstrSeCodeNm, String cnrsPsnCo, String pnu,
                            String ldCodeNm, String regionSido, String regionSigungu, String regionEupmyeondong,
-                           Long desiredPrice, String description, TransactionType transactionType,
+                           Long desiredPrice, Double desiredArea, String description, TransactionType transactionType,
                            Double x, Double y) {
         this.address = address;
         this.area = area;
@@ -132,6 +134,7 @@ public class Land extends BaseEntity {
         this.regionSigungu = regionSigungu;
         this.regionEupmyeondong = regionEupmyeondong;
         this.desiredPrice = desiredPrice;
+        this.desiredArea = desiredArea;
         this.description = description;
         this.x = x;
         this.y = y;

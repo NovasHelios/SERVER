@@ -6,6 +6,7 @@ import com.heilous.land.dto.LandFilterRequest;
 import com.heilous.land.dto.LandRegisterRequest;
 import com.heilous.land.dto.LandResponse;
 import com.heilous.land.dto.LandUpdateRequest;
+import com.heilous.land.dto.RegionStatsResponse;
 import com.heilous.land.entity.Land;
 import com.heilous.land.service.LandService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,15 +36,25 @@ public class LandController {
     public APIResponse<String> registerLand(
             @RequestParam("address") String address,
             @RequestParam(value = "desiredPrice", required = false) Long desiredPrice,
+            @RequestParam(value = "desiredArea", required = false) Double desiredArea,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam("transactionType") Land.TransactionType transactionType,
             @RequestPart(value = "document", required = false) MultipartFile document,
             @RequestPart("images") List<MultipartFile> images,
             @AuthenticationPrincipal String email
     ) {
-        LandRegisterRequest request = new LandRegisterRequest(address, desiredPrice, description, transactionType);
+        LandRegisterRequest request = new LandRegisterRequest(address, desiredPrice, desiredArea, description, transactionType);
         landService.registerLand(request, email, document, images);
         return APIResponse.ok("토지 등록 완료");
+    }
+
+    @Operation(
+            summary = "시군구별 거래유형 토지 수 통계",
+            description = "시/도 > 시/군/구 단위로 매매(SALE), 임대(LEASE), 사업희망(BUSINESS_HOPE) 토지 수를 반환합니다."
+    )
+    @GetMapping("/regions")
+    public APIResponse<List<RegionStatsResponse>> getRegionStats() {
+        return APIResponse.ok(landService.getRegionStats());
     }
 
     @Operation(

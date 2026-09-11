@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 public class LandRegisterRequest {
     private String address;
     private Long desiredPrice;
+    private Double desiredArea;
     private String description;
     private Land.TransactionType transactionType;
 }

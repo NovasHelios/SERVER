@@ -8,6 +8,7 @@ import com.heilous.land.dto.LandFilterRequest;
 import com.heilous.land.dto.LandRegisterRequest;
 import com.heilous.land.dto.LandResponse;
 import com.heilous.land.dto.LandUpdateRequest;
+import com.heilous.land.dto.RegionStatsResponse;
 import com.heilous.land.entity.Land;
 import com.heilous.land.entity.LandEtc;
 import com.heilous.land.entity.LandImage;
@@ -32,7 +33,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -123,9 +126,10 @@ public class LandService {
                 .regionSido(regions[0])
                 .regionSigungu(regions[1])
                 .regionEupmyeondong(regions[2])
-                .desiredPrice(request.getTransactionType() == Land.TransactionType.BUSINESS
+                .desiredPrice(request.getTransactionType() == Land.TransactionType.BUSINESS_HOPE
                         ? null : request.getDesiredPrice())
                 .description(request.getDescription())
+                .desiredArea(request.getDesiredArea())
                 .transactionType(request.getTransactionType())
                 .status(Land.LandStatus.PENDING)
                 .x(addressLandResponse.getX())
@@ -198,6 +202,44 @@ public class LandService {
                 .stream()
                 .map(l -> LandResponse.from(l, objectMapper))
                 .toList();
+    }
+
+    // 시군구별 거래유형 통계
+    @Transactional(readOnly = true)
+    public List<RegionStatsResponse> getRegionStats() {
+        List<Object[]> rows = landRepository.countByRegionAndTransactionType();
+
+        // sido → sigungu → type 집계
+        Map<String, Map<String, long[]>> map = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            String sido     = (String) row[0];
+            String sigungu  = (String) row[1];
+            Land.TransactionType type = (Land.TransactionType) row[2];
+            long count      = (Long) row[3];
+
+            map.computeIfAbsent(sido, k -> new LinkedHashMap<>())
+               .computeIfAbsent(sigungu, k -> new long[3]); // [0]=SALE [1]=LEASE [2]=BUSINESS_HOPE
+
+            long[] counts = map.get(sido).get(sigungu);
+            if (type == Land.TransactionType.SALE)           counts[0] += count;
+            else if (type == Land.TransactionType.LEASE)     counts[1] += count;
+            else if (type == Land.TransactionType.BUSINESS_HOPE) counts[2] += count;
+        }
+
+        List<RegionStatsResponse> result = new ArrayList<>();
+        map.forEach((sido, sigunguMap) -> {
+            List<RegionStatsResponse.SigunguStats> sigungus = new ArrayList<>();
+            sigunguMap.forEach((sigungu, counts) ->
+                sigungus.add(RegionStatsResponse.SigunguStats.builder()
+                        .sigungu(sigungu)
+                        .saleCount(counts[0])
+                        .leaseCount(counts[1])
+                        .businessHopeCount(counts[2])
+                        .build())
+            );
+            result.add(RegionStatsResponse.builder().sido(sido).sigungus(sigungus).build());
+        });
+        return result;
     }
 
     // ldCodeNm → [시/도, 시/군/구, 읍/면/동] 파싱
@@ -359,6 +401,7 @@ public class LandService {
                 regions[1],
                 regions[2],
                 request.getDesiredPrice(),
+                request.getDesiredArea(),
                 request.getDescription(),
                 request.getTransactionType(),
                 addressLandResponse.getX(),

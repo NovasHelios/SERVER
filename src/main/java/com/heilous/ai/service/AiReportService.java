@@ -105,7 +105,7 @@ public class AiReportService {
         return switch (land.getTransactionType()) {
             case SALE     -> "매매";
             case LEASE    -> "임대";
-            case BUSINESS -> "사업제안";
+            case BUSINESS_HOPE -> "사업제안";
         };
     }
 }

@@ -31,6 +31,7 @@ public class LandDetailResponse {
 
     // 거래 정보
     private Long desiredPrice;
+    private Double desiredArea;
     private String description;
     private String status;
     private String transactionType;
@@ -103,6 +104,7 @@ public class LandDetailResponse {
                 .regionSigungu(land.getRegionSigungu())
                 .regionEupmyeondong(land.getRegionEupmyeondong())
                 .desiredPrice(land.getDesiredPrice())
+                .desiredArea(land.getDesiredArea())
                 .description(land.getDescription())
                 .status(land.getStatus() != null ? land.getStatus().name() : null)
                 .transactionType(land.getTransactionType() != null ? land.getTransactionType().name() : null)
