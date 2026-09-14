@@ -83,8 +83,6 @@ public class Land extends BaseEntity {
     private String prposAreaCnflcAtNm;   // 저촉여부 명칭
 
     // ── 좌표 (MultiPolygon JSON) ─────────────────────────────────
-    @Column(columnDefinition = "LONGTEXT")
-    private String coordinates;
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LandZone> landZones = new ArrayList<>();
@@ -144,12 +142,10 @@ public class Land extends BaseEntity {
     }
 
     public void updateLandUse(String prposAreaCode,
-                              String prposAreaCnflcAt, String prposAreaCnflcAtNm,
-                              String coordinates) {
+                              String prposAreaCnflcAt, String prposAreaCnflcAtNm) {
         this.prposAreaCode = prposAreaCode;
         this.prposAreaCnflcAt = prposAreaCnflcAt;
         this.prposAreaCnflcAtNm = prposAreaCnflcAtNm;
-        this.coordinates = coordinates;
     }
 
     public void changeStatus(LandStatus status) {

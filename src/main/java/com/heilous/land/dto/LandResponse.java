@@ -1,6 +1,5 @@
 package com.heilous.land.dto;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heilous.land.entity.Land;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,18 +21,8 @@ public class LandResponse {
     private Double y;
     private String lcCodeNm;
     private String regstrSeCodeNm;
-    private Object coordinates;
 
-    public static LandResponse from(Land land, ObjectMapper objectMapper) {
-        Object coordinatesObj = null;
-        if (land.getCoordinates() != null) {
-            try {
-                coordinatesObj = objectMapper.readValue(land.getCoordinates(), Object.class);
-            } catch (Exception ignored) {
-                coordinatesObj = land.getCoordinates();
-            }
-        }
-
+    public static LandResponse from(Land land) {
         return LandResponse.builder()
                 .id(land.getId())
                 .address(land.getAddress())
@@ -46,7 +35,6 @@ public class LandResponse {
                 .y(land.getY())
                 .lcCodeNm(land.getLcCodeNm())
                 .regstrSeCodeNm(land.getRegstrSeCodeNm())
-                .coordinates(coordinatesObj)
                 .build();
     }
 }

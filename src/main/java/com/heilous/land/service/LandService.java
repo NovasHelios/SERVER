@@ -25,7 +25,6 @@ import com.heilous.vworld.dto.AddressLandResponse;
 import com.heilous.vworld.dto.VWorldLandResponse;
 import com.heilous.vworld.dto.VWorldWfsResponse;
 import com.heilous.vworld.service.VWorldService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -49,7 +48,6 @@ public class LandService {
     private final UserRepository userRepository;
     private final VWorldService vWorldService;
     private final ImageStorageService imageStorageService;
-    private final ObjectMapper objectMapper;
 
     // 토지 등록
     @Transactional
@@ -165,7 +163,7 @@ public class LandService {
 
         return landRepository.findAllByOrderByIdDesc()
                 .stream()
-                .map(l -> LandResponse.from(l, objectMapper))
+                .map(LandResponse::from)
                 .toList();
     }
 
@@ -191,7 +189,7 @@ public class LandService {
         return landRepository
                 .findAll(LandSpecification.buildFilter(filter))
                 .stream()
-                .map(l -> LandResponse.from(l, objectMapper))
+                .map(LandResponse::from)
                 .toList();
     }
 
@@ -200,7 +198,7 @@ public class LandService {
     public List<LandResponse> getMyLands(String email) {
         return landRepository.findByOwnerEmailOrderByIdDesc(email)
                 .stream()
-                .map(l -> LandResponse.from(l, objectMapper))
+                .map(LandResponse::from)
                 .toList();
     }
 
@@ -273,12 +271,6 @@ public class LandService {
             String[] cnflcNms = props.getCnflcAtNmList() != null
                     ? props.getCnflcAtNmList().split(",") : new String[0];
 
-            // 좌표 JSON 직렬화
-            String coordinatesJson = null;
-            if (feature.getGeometry() != null && feature.getGeometry().getCoordinates() != null) {
-                coordinatesJson = objectMapper.writeValueAsString(feature.getGeometry().getCoordinates());
-            }
-
             String prposAreaCode = null, prposAreaCnflcAt = null, prposAreaCnflcAtNm = null;
 
             List<LandZone> zones = new ArrayList<>();
@@ -312,7 +304,7 @@ public class LandService {
                 }
             }
 
-            land.updateLandUse(prposAreaCode, prposAreaCnflcAt, prposAreaCnflcAtNm, coordinatesJson);
+            land.updateLandUse(prposAreaCode, prposAreaCnflcAt, prposAreaCnflcAtNm);
 
             if (!zones.isEmpty()) landZoneRepository.saveAll(zones);
             if (!etcs.isEmpty())  landEtcRepository.saveAll(etcs);

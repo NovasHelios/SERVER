@@ -19,20 +19,8 @@ public class VWorldWfsResponse {
     @Setter
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Feature {
-
-        @JsonProperty("geometry")
-        private Geometry geometry;
-
         @JsonProperty("properties")
         private Properties properties;
-    }
-
-    @Getter
-    @Setter
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Geometry {
-        @JsonProperty("coordinates")
-        private Object coordinates; // MultiPolygon 좌표 배열 → JSON으로 저장
     }
 
     @Getter
