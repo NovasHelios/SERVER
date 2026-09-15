@@ -26,4 +26,6 @@ public class ChatMessage extends BaseEntity {
     private LocalDateTime readAt;
 
     public void markAsRead() { if (readAt == null) this.readAt = LocalDateTime.now(); }
+
+    public void updateContent(String content) { this.content = content; }
 }

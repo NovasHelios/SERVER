@@ -31,7 +31,7 @@ public class ChatRoom extends BaseEntity {
     @Column(nullable = false)
     private Status status = Status.PENDING;
 
-    @OneToMany(mappedBy = "room", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ChatMessage> messages = new ArrayList<>();
 
     public void accept() { this.status = Status.ACCEPTED; }

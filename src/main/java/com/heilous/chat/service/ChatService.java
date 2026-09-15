@@ -221,6 +221,44 @@ public class ChatService {
     }
 
     // ─────────────────────────────────────────────
+    // 채팅방 삭제
+    // ─────────────────────────────────────────────
+    @Transactional
+    public void deleteRoom(Long roomId, String email) {
+        ChatRoom room = requireParticipant(roomId, email);
+        chatRoomRepository.delete(room);
+    }
+
+    // ─────────────────────────────────────────────
+    // 메시지 수정
+    // ─────────────────────────────────────────────
+    @Transactional
+    public ChatMessageResponse updateMessage(Long roomId, Long messageId, String content, String email) {
+        requireParticipant(roomId, email);
+        ChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.CHAT_MESSAGE_NOT_FOUND));
+        if (!message.getSender().getEmail().equals(email)) {
+            throw new CustomException(GlobalErrorCode.CHAT_MESSAGE_ACCESS_DENIED);
+        }
+        message.updateContent(content.trim());
+        return ChatMessageResponse.from(message);
+    }
+
+    // ─────────────────────────────────────────────
+    // 메시지 삭제
+    // ─────────────────────────────────────────────
+    @Transactional
+    public void deleteMessage(Long roomId, Long messageId, String email) {
+        requireParticipant(roomId, email);
+        ChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.CHAT_MESSAGE_NOT_FOUND));
+        if (!message.getSender().getEmail().equals(email)) {
+            throw new CustomException(GlobalErrorCode.CHAT_MESSAGE_ACCESS_DENIED);
+        }
+        chatMessageRepository.delete(message);
+    }
+
+    // ─────────────────────────────────────────────
     // WebSocket 구독 시 참여자 검증
     // ─────────────────────────────────────────────
     @Transactional(readOnly = true)

@@ -66,9 +66,35 @@ public class ChatController {
             description = "토지 소유자(USER)가 기업의 채팅 상담 요청을 거절합니다. 거절된 채팅방은 더 이상 메시지를 주고받을 수 없습니다."
     )
     @PatchMapping("/{roomId}/reject") public APIResponse<ChatRoomResponse> reject(@PathVariable Long roomId, @AuthenticationPrincipal String email) { return APIResponse.ok(chatService.rejectRoom(roomId, email)); }
-    @Operation(
-            summary = "채팅방 종료",
-            description = "채팅방 참여자가 상담을 종료합니다. 종료된 채팅방은 메시지 전송이 불가능하며 이력은 유지됩니다."
-    )
+    @Operation(summary = "채팅방 종료", description = "채팅방 참여자가 상담을 종료합니다. 종료된 채팅방은 메시지 전송이 불가능하며 이력은 유지됩니다.")
     @PatchMapping("/{roomId}/close") public APIResponse<String> close(@PathVariable Long roomId, @AuthenticationPrincipal String email) { chatService.closeRoom(roomId, email); return APIResponse.ok("상담 채팅방이 종료되었습니다."); }
+
+    @Operation(summary = "채팅방 삭제", description = "채팅방 참여자가 채팅방을 삭제합니다. 채팅방 내 모든 메시지도 함께 삭제됩니다.")
+    @DeleteMapping("/{roomId}")
+    public APIResponse<String> deleteRoom(@PathVariable Long roomId, @AuthenticationPrincipal String email) {
+        chatService.deleteRoom(roomId, email);
+        return APIResponse.ok("채팅방이 삭제되었습니다.");
+    }
+
+    @Operation(summary = "메시지 수정", description = "본인이 보낸 메시지의 내용을 수정합니다.")
+    @PatchMapping("/{roomId}/messages/{messageId}")
+    public APIResponse<ChatMessageResponse> updateMessage(
+            @PathVariable Long roomId,
+            @PathVariable Long messageId,
+            @Valid @RequestBody ChatMessageRequest request,
+            @AuthenticationPrincipal String email) {
+        ChatMessageResponse response = chatService.updateMessage(roomId, messageId, request.getContent(), email);
+        messagingTemplate.convertAndSend("/topic/chat/rooms/" + roomId, response);
+        return APIResponse.ok(response);
+    }
+
+    @Operation(summary = "메시지 삭제", description = "본인이 보낸 메시지를 삭제합니다.")
+    @DeleteMapping("/{roomId}/messages/{messageId}")
+    public APIResponse<String> deleteMessage(
+            @PathVariable Long roomId,
+            @PathVariable Long messageId,
+            @AuthenticationPrincipal String email) {
+        chatService.deleteMessage(roomId, messageId, email);
+        return APIResponse.ok("메시지가 삭제되었습니다.");
+    }
 }
