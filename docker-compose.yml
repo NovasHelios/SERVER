@@ -1,18 +1,19 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: heilous-mysql
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: heilous-postgres
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: solar_platform
+      POSTGRES_DB: heilous
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       TZ: Asia/Seoul
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - ./data/mysql:/var/lib/mysql
-      - ./mysql/conf.d:/etc/mysql/conf.d
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d heilous"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -37,15 +38,15 @@ services:
       - .env
     environment:
       # .env의 localhost를 도커 내부 컨테이너 이름으로 오버라이드
-      DB_URL: jdbc:mysql://mysql:3306/solar_platform?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      DB_URL: jdbc:postgresql://postgres:5432/heilous
       REDIS_HOST: redis
     volumes:
       - /home/ubuntu/uploads:/app/uploads
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
 
 volumes:
-  mysql-data:
+  postgres-data:
