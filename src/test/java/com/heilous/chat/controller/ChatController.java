@@ -1,0 +1,100 @@
+package com.heilous.chat.controller;
+
+import com.heilous.chat.dto.*;
+import com.heilous.chat.service.ChatService;
+import com.heilous.common.dto.APIResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+
+@RestController
+@CrossOrigin
+@RequestMapping("/api/chat/rooms")
+@SecurityRequirement(name = "bearerAuth")
+@RequiredArgsConstructor
+public class ChatController {
+    private final ChatService chatService;
+    private final SimpMessagingTemplate messagingTemplate;
+    @Operation(
+            summary = "채팅방 생성",
+            description = "COMPANY 사용자가 특정 토지에 대해 채팅 상담을 요청합니다. landId와 첫 메시지를 함께 전송하면 채팅방이 생성되며 토지 소유자에게 요청이 전달됩니다."
+    )
+    @PostMapping public APIResponse<ChatRoomResponse> create(@Valid @RequestBody CreateChatRoomRequest request, @AuthenticationPrincipal String email) { return APIResponse.ok(chatService.createRoom(request.getLandId(), request.getInitialMessage(), email)); }
+    @Operation(
+            summary = "내 채팅방 목록 조회",
+            description = "로그인한 사용자가 참여 중인 모든 채팅방 목록을 조회합니다. USER는 본인 토지에 대한 채팅방, COMPANY는 본인이 요청한 채팅방이 반환됩니다."
+    )
+    @GetMapping public APIResponse<List<ChatRoomResponse>> list(@AuthenticationPrincipal String email) { return APIResponse.ok(chatService.getRooms(email)); }
+    @Operation(
+            summary = "채팅 메시지 목록 조회",
+            description = "특정 채팅방의 메시지를 커서 기반으로 페이지네이션 조회합니다. cursorId 미전달 시 최신 메시지부터 반환합니다. 다음 페이지 요청 시 마지막 메시지의 messageId를 cursorId로 전달하세요."
+    )
+    @GetMapping("/{roomId}/messages")
+    public APIResponse<List<ChatMessageResponse>> messages(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal String email,
+            @RequestParam(required = false, defaultValue = "0") Long cursorId,
+            @RequestParam(required = false, defaultValue = "50") @Min(1) @Max(100) int size
+    ) {
+        return APIResponse.ok(chatService.getMessages(roomId, email, cursorId, size));
+    }
+    @PostMapping("/{roomId}/messages") public APIResponse<ChatMessageResponse> sendMessage(@PathVariable Long roomId, @Valid @RequestBody ChatMessageRequest request, @AuthenticationPrincipal String email) {
+        ChatMessageResponse response = chatService.sendMessage(roomId, email, request.getContent());
+        messagingTemplate.convertAndSend("/topic/chat/rooms/" + roomId, response);
+        return APIResponse.ok(response);
+    }
+    @PostMapping(value = "/{roomId}/attachments", consumes = "multipart/form-data") public APIResponse<ChatMessageResponse> attachment(@PathVariable Long roomId, @RequestPart("file") MultipartFile file, @AuthenticationPrincipal String email) {
+        ChatMessageResponse response = chatService.sendAttachment(roomId, email, file);
+        messagingTemplate.convertAndSend("/topic/chat/rooms/" + roomId, response);
+        return APIResponse.ok(response);
+    }
+    @Operation(
+            summary = "채팅 상담 요청 수락",
+            description = "토지 소유자(USER)가 기업의 채팅 상담 요청을 수락합니다. 수락 후 양측이 자유롭게 메시지를 주고받을 수 있습니다."
+    )
+    @PatchMapping("/{roomId}/accept") public APIResponse<ChatRoomResponse> accept(@PathVariable Long roomId, @AuthenticationPrincipal String email) { return APIResponse.ok(chatService.acceptRoom(roomId, email)); }
+    @Operation(
+            summary = "채팅 상담 요청 거절",
+            description = "토지 소유자(USER)가 기업의 채팅 상담 요청을 거절합니다. 거절된 채팅방은 더 이상 메시지를 주고받을 수 없습니다."
+    )
+    @PatchMapping("/{roomId}/reject") public APIResponse<ChatRoomResponse> reject(@PathVariable Long roomId, @AuthenticationPrincipal String email) { return APIResponse.ok(chatService.rejectRoom(roomId, email)); }
+    @Operation(summary = "채팅방 종료", description = "채팅방 참여자가 상담을 종료합니다. 종료된 채팅방은 메시지 전송이 불가능하며 이력은 유지됩니다.")
+    @PatchMapping("/{roomId}/close") public APIResponse<String> close(@PathVariable Long roomId, @AuthenticationPrincipal String email) { chatService.closeRoom(roomId, email); return APIResponse.ok("상담 채팅방이 종료되었습니다."); }
+
+    @Operation(summary = "채팅방 삭제", description = "채팅방 참여자가 채팅방을 삭제합니다. 채팅방 내 모든 메시지도 함께 삭제됩니다.")
+    @DeleteMapping("/{roomId}")
+    public APIResponse<String> deleteRoom(@PathVariable Long roomId, @AuthenticationPrincipal String email) {
+        chatService.deleteRoom(roomId, email);
+        return APIResponse.ok("채팅방이 삭제되었습니다.");
+    }
+
+    @Operation(summary = "메시지 수정", description = "본인이 보낸 메시지의 내용을 수정합니다.")
+    @PatchMapping("/{roomId}/messages/{messageId}")
+    public APIResponse<ChatMessageResponse> updateMessage(
+            @PathVariable Long roomId,
+            @PathVariable Long messageId,
+            @Valid @RequestBody ChatMessageRequest request,
+            @AuthenticationPrincipal String email) {
+        ChatMessageResponse response = chatService.updateMessage(roomId, messageId, request.getContent(), email);
+        messagingTemplate.convertAndSend("/topic/chat/rooms/" + roomId, response);
+        return APIResponse.ok(response);
+    }
+
+    @Operation(summary = "메시지 삭제", description = "본인이 보낸 메시지를 삭제합니다.")
+    @DeleteMapping("/{roomId}/messages/{messageId}")
+    public APIResponse<String> deleteMessage(
+            @PathVariable Long roomId,
+            @PathVariable Long messageId,
+            @AuthenticationPrincipal String email) {
+        chatService.deleteMessage(roomId, messageId, email);
+        return APIResponse.ok("메시지가 삭제되었습니다.");
+    }
+}

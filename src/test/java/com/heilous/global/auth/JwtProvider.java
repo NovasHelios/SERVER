@@ -1,0 +1,95 @@
+package com.heilous.global.auth;
+
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.security.Key;
+import java.util.Date;
+
+@Component
+public class JwtProvider {
+
+    @Value("${jwt.secret}")
+    private String secretKey;
+
+    private Key key;
+
+    @PostConstruct
+    protected void init() {
+        this.key = Keys.hmacShaKeyFor(
+                secretKey.getBytes()
+        );
+    }
+
+    // JWT 생성
+    public String createToken(
+            String email,
+            String role
+    ) {
+
+        Claims claims = Jwts.claims()
+                .setSubject(email);
+
+        claims.put("role", role);
+
+        Date now = new Date();
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(now)
+                .setExpiration(
+                        new Date(
+                                now.getTime() + 1000L * 60 * 60
+                        )
+                )
+                .signWith(
+                        key,
+                        SignatureAlgorithm.HS256
+                )
+                .compact();
+    }
+
+    // 이메일 추출
+    public String getEmail(String token) {
+
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
+    }
+
+    // role 추출
+    public String getRole(String token) {
+
+        return (String) Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("role");
+    }
+
+    // 토큰 검증
+    public boolean validateToken(String token) {
+
+        try {
+
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token);
+
+            return true;
+
+        } catch (JwtException | IllegalArgumentException e) {
+
+            return false;
+        }
+    }
+}
+
