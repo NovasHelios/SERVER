@@ -13,6 +13,7 @@ import com.heilous.vworld.dto.PossessionAttrResponse;
 import com.heilous.vworld.service.VWorldService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,236 +28,280 @@ public class LandAnalysisService {
 
     private final LandRepository landRepository;
     private final VWorldService vWorldService;
+    private final ChatClient.Builder chatClientBuilder;
 
-    // ── 가중치 (합산 = 100) ─────────────────────────────────────
-    private static final double W_SUNLIGHT      = 0.40;
-    private static final double W_SLOPE         = 0.30;
-    private static final double W_ACCESSIBILITY = 0.30;
-
-    // ── 공시지가 기본 조회 연수 ─────────────────────────────────
     private static final int DEFAULT_YEARS = 6;
 
     // ═══════════════════════════════════════════════════════════
     // 1. 개발가능성 분석
     // ═══════════════════════════════════════════════════════════
-
-    /**
-     * 토지 ID로 개발가능성 백분위 점수를 산출합니다.
-     *
-     * <p>점수 산출 기준:</p>
-     * <ul>
-     *   <li>일조량 (40%): 지목코드·용도지역 기반 일조 적합성 평가</li>
-     *   <li>면적/경사 (30%): 면적 규모·지목 기반 경사도 적합성 평가</li>
-     *   <li>접근성 (30%): 행정구역(시도·시군구)·지목·용도지역 기반 접근성 평가</li>
-     * </ul>
-     */
     @Transactional(readOnly = true)
     public DevelopmentScoreResponse analyzeDevelopment(Long landId) {
         Land land = getLandWithDetails(landId);
 
-        int sunlight      = calcSunlightScore(land);
-        int slope         = calcSlopeScore(land);
-        int accessibility = calcAccessibilityScore(land);
+        String etcCodesStr = land.getLandEtcs().stream()
+                .map(LandEtc::getCode).collect(Collectors.joining(","));
+        String zoneCodesStr = land.getLandZones().stream()
+                .map(LandZone::getCode).collect(Collectors.joining(","));
 
-        int total = (int) Math.round(
-                sunlight      * W_SUNLIGHT
-                + slope         * W_SLOPE
-                + accessibility * W_ACCESSIBILITY
-        );
-        total = clamp(total, 0, 100);
+        // ── 항목별 점수 산출 ─────────────────────────────────────
+        // 일사량, 경사도, 도로접근성은 AI가 판단 (데이터 없음)
+        // → AI 호출 시 함께 받아오므로 아래에서 처리
 
-        // 용도지구 코드 목록
-        String zoneCodes = land.getLandZones().stream()
-                .map(LandZone::getCode)
-                .collect(Collectors.joining(","));
+        // 개발 가능 면적: desiredArea 우선, 없으면 area
+        Double evalArea = land.getDesiredArea() != null ? land.getDesiredArea() : land.getArea();
+        int areaScore = calcAreaScore(evalArea);
 
-        // 기타 규제 코드 목록
-        String etcCodes = land.getLandEtcs().stream()
-                .map(LandEtc::getCode)
-                .collect(Collectors.joining(","));
+        // 토지이용규제: etcCodes 기반 (null = 데이터 없어 AI 판단)
+        Integer regulationScore = calcRegulationScore(etcCodesStr);
+
+        // 용도지역·용도지구: prposAreaCode + zoneCodes 기반 (null = 부적합)
+        Integer zoneScore = calcZoneScore(land.getPrposAreaCode(), zoneCodesStr);
+
+        // ── AI로 일사량·경사도·도로접근성 점수 + 전체 rationale 생성 ──
+        AiScoreResult aiResult = callAiForScores(land, areaScore, regulationScore, zoneScore,
+                etcCodesStr, zoneCodesStr);
+
+        // ── 부적합 판정 ──────────────────────────────────────────
+        boolean disqualified = aiResult.slopeScore == null
+                || aiResult.roadScore == null
+                || regulationScore == null
+                || zoneScore == null;
+
+        // 총점 계산
+        Integer totalScore = null;
+        String grade;
+        if (!disqualified) {
+            totalScore = aiResult.sunlightScore + aiResult.slopeScore + areaScore
+                    + aiResult.roadScore + regulationScore + zoneScore;
+            grade = toGrade(totalScore);
+        } else {
+            grade = "부적합";
+        }
 
         return DevelopmentScoreResponse.builder()
                 .landId(land.getId())
                 .address(land.getAddress())
-                .sunlightScore(sunlight)
-                .slopeScore(slope)
-                .accessibilityScore(accessibility)
-                .developmentScore(total)
-                .grade(toGrade(total))
+                .sunlightScore(aiResult.sunlightScore)
+                .slopeScore(aiResult.slopeScore)
+                .areaScore(areaScore)
+                .roadScore(aiResult.roadScore)
+                .regulationScore(regulationScore)
+                .zoneScore(zoneScore)
+                .totalScore(totalScore)
+                .grade(grade)
+                .disqualified(disqualified)
                 .landCategory(land.getLcCodeNm())
                 .area(land.getArea())
+                .desiredArea(land.getDesiredArea())
+                .prposAreaCode(land.getPrposAreaCode())
                 .zoneConflict(land.getPrposAreaCnflcAtNm())
-                .zoneCodes(zoneCodes.isBlank() ? null : zoneCodes)
-                .etcCodes(etcCodes.isBlank() ? null : etcCodes)
-                .rationale(buildRationale(land, sunlight, slope, accessibility, total))
+                .zoneCodes(zoneCodesStr.isBlank() ? null : zoneCodesStr)
+                .etcCodes(etcCodesStr.isBlank() ? null : etcCodesStr)
+                .rationale(aiResult.rationale)
                 .build();
     }
 
-    // ── 일조량 점수 (0~100) ─────────────────────────────────────
-    /**
-     * 지목코드(lcCode)·용도지역 저촉여부·기타규제 코드를 기반으로 일조 적합성을 평가합니다.
-     *
-     * <ul>
-     *   <li>지목: 대지·전·답·과수원은 개방형 지형 → 일조 우수</li>
-     *   <li>지목: 임야(06)·하천(10)·구거(11)는 그늘·음지 가능성 높음 → 감점</li>
-     *   <li>저촉여부: 저촉(2)이면 개발제한 가능성 → 감점</li>
-     *   <li>기타규제: 보전임지(FA), 공원(UQP), 군사(GF) 등 → 감점</li>
-     * </ul>
-     */
-    private int calcSunlightScore(Land land) {
-        int score = 60; // 기본점수
-
-        // ① 지목 기반 조정
-        String lc = land.getLcCode();
-        if (lc != null) {
-            score += switch (lc) {
-                case "08" -> 20;          // 대지 — 평탄, 일조 최우수
-                case "01", "02" -> 15;    // 전·답 — 평탄 농지, 일조 우수
-                case "04" -> 10;          // 과수원 — 비교적 양호
-                case "07" -> 5;           // 목장용지
-                case "06" -> -15;         // 임야 — 경사·수목으로 일조 불리
-                case "10", "11" -> -20;   // 하천·구거 — 저지대, 일조 불리
-                case "16" -> -10;         // 도로
-                default -> 0;
-            };
-        }
-
-        // ② 용도지역 저촉여부 조정
-        String cnflc = land.getPrposAreaCnflcAt();
-        if ("2".equals(cnflc)) score -= 10; // 저촉
-
-        // ③ 기타 규제 조정
-        Set<String> etcCodes = land.getLandEtcs().stream()
-                .map(LandEtc::getCode).collect(Collectors.toSet());
-        if (etcCodes.stream().anyMatch(c -> c.startsWith("FA"))) score -= 15; // 보전임지
-        if (etcCodes.stream().anyMatch(c -> c.startsWith("GF"))) score -= 10; // 군사시설
-        if (etcCodes.stream().anyMatch(c -> c.startsWith("UQP"))) score -= 8; // 공원
-
-        return clamp(score, 0, 100);
+    // ── 개발 가능 면적 점수 (10점 만점) ─────────────────────────
+    private int calcAreaScore(Double area) {
+        if (area == null) return 2;
+        if (area >= 3000) return 10;
+        if (area >= 2000) return 8;
+        if (area >= 1000) return 6;
+        if (area >= 500)  return 4;
+        return 2;
     }
 
-    // ── 면적/경사 점수 (0~100) ──────────────────────────────────
-    /**
-     * 면적 규모·지목을 기반으로 경사도 적합성을 평가합니다.
-     *
-     * <ul>
-     *   <li>대지: 이미 평탄화된 경우가 많음 → 높은 기본점수</li>
-     *   <li>농지(전·답): 농업용 평탄 지형 → 양호</li>
-     *   <li>임야: 경사 지형 가능성 높음 → 감점</li>
-     *   <li>면적: 330㎡ 미만(소규모)이면 개발 한계, 3000㎡ 이상이면 가산</li>
-     * </ul>
-     */
-    private int calcSlopeScore(Land land) {
-        int score = 55; // 기본점수
+    // ── 토지이용규제 점수 (20점 만점, 태양광 막는 규제 시 null=부적합) ──
+    private Integer calcRegulationScore(String etcCodesStr) {
+        if (etcCodesStr == null || etcCodesStr.isBlank()) return 20; // 규제 없음
 
-        // ① 지목 기반 조정
-        String lc = land.getLcCode();
-        if (lc != null) {
-            score += switch (lc) {
-                case "08" -> 25;          // 대지 — 평탄화 완료
-                case "01", "02" -> 20;    // 전·답 — 농업용 평탄 지형
-                case "04" -> 10;          // 과수원
-                case "07" -> 5;           // 목장용지 — 완만한 경사
-                case "06" -> -20;         // 임야 — 경사 지형
-                case "09" -> -5;          // 광천지
-                default -> 0;
-            };
-        }
+        Set<String> codes = Arrays.stream(etcCodesStr.split(","))
+                .map(String::trim).collect(Collectors.toSet());
 
-        // ② 면적 기반 조정
-        if (land.getArea() != null) {
-            double area = land.getArea();
-            if (area < 100)        score -= 20; // 극소규모
-            else if (area < 330)   score -= 10; // 소규모 (33평 미만)
-            else if (area < 1000)  score += 0;  // 일반
-            else if (area < 3000)  score += 5;  // 중규모
-            else if (area < 10000) score += 10; // 대규모
-            else                   score += 15; // 초대형
-        }
+        // 태양광 개발을 원천 차단하는 규제 → 부적합
+        boolean disqualify = codes.stream().anyMatch(c ->
+                c.startsWith("UBD")   // 개발제한구역
+                || c.startsWith("FA")  // 보전산지
+                || c.startsWith("GF")  // 군사시설보호구역
+                || c.startsWith("UBB") // 절대보전지역
+        );
+        if (disqualify) return null;
 
-        // ③ 기타 규제 조정
-        Set<String> etcCodes = land.getLandEtcs().stream()
-                .map(LandEtc::getCode).collect(Collectors.toSet());
-        if (etcCodes.stream().anyMatch(c -> c.startsWith("FA"))) score -= 15;
-        if (etcCodes.stream().anyMatch(c -> c.startsWith("HA"))) score -= 10; // 급경사지
-
-        return clamp(score, 0, 100);
+        // 복수의 검토사항 (3개 이상)
+        if (codes.size() >= 3) return 7;
+        // 경미한 검토사항 (1~2개)
+        if (!codes.isEmpty()) return 14;
+        return 20;
     }
 
-    // ── 접근성 점수 (0~100) ─────────────────────────────────────
-    /**
-     * 행정구역(시도·시군구)·지목·용도지역·기타규제 기반으로 접근성을 평가합니다.
-     *
-     * <ul>
-     *   <li>서울·인천·경기: 도로망 밀도 높음 → 높은 기본점수</li>
-     *   <li>지목 대지(08): 이미 진입로 확보 가능성 높음</li>
-     *   <li>임야·하천: 진입로 확보 어려움 → 감점</li>
-     *   <li>군사·보전구역: 접근 제한 → 큰 감점</li>
-     *   <li>용도지역 저촉: 접근 제한 가능성</li>
-     * </ul>
-     */
-    private int calcAccessibilityScore(Land land) {
-        int score = 50; // 기본점수
-
-        // ① 시도 기반 조정 (도로망 밀도)
-        String sido = land.getRegionSido();
-        if (sido != null) {
-            score += switch (sido) {
-                case "서울특별시"            -> 30;
-                case "인천광역시",
-                     "경기도"              -> 25;
-                case "부산광역시",
-                     "대구광역시",
-                     "광주광역시",
-                     "대전광역시",
-                     "울산광역시"           -> 20;
-                case "세종특별자치시"         -> 18;
-                case "충청북도", "충청남도",
-                     "전라북도", "경상북도",
-                     "경상남도"            -> 5;
-                case "전라남도", "강원특별자치도",
-                     "제주특별자치도"         -> 0;
-                default                   -> 5;
-            };
+    // ── 용도지역·용도지구 점수 (15점 만점) ──────────────────────
+    private Integer calcZoneScore(String prposAreaCode, String zoneCodesStr) {
+        // 개발 불가 용도지역 → 부적합
+        if (prposAreaCode != null) {
+            // UQA02X = 보전관리, UQA03X = 농림, UQA04X = 자연환경보전
+            if (prposAreaCode.startsWith("UQA02") || prposAreaCode.startsWith("UQA03")
+                    || prposAreaCode.startsWith("UQA04")) {
+                return null; // 부적합
+            }
+            // 개발에 유리한 용도지역: 계획관리(UQA01), 생산관리 일부
+            if (prposAreaCode.startsWith("UQA01")) return 15; // 계획관리지역
         }
 
-        // ② 지목 기반 조정
-        String lc = land.getLcCode();
-        if (lc != null) {
-            score += switch (lc) {
-                case "08" -> 10;          // 대지 — 진입로 확보 가능성 높음
-                case "16" -> 15;          // 도로 — 접근 용이
-                case "01", "02" -> 5;     // 전·답 — 농로 존재 가능
-                case "06" -> -15;         // 임야 — 진입로 확보 어려움
-                case "10", "11" -> -15;   // 하천·구거 — 접근 제한
-                default -> 0;
-            };
+        // 용도지구 코드 확인
+        boolean hasRestrictiveZone = false;
+        if (zoneCodesStr != null && !zoneCodesStr.isBlank()) {
+            Set<String> zoneCodes = Arrays.stream(zoneCodesStr.split(","))
+                    .map(String::trim).collect(Collectors.toSet());
+            hasRestrictiveZone = zoneCodes.stream().anyMatch(c ->
+                    c.startsWith("UQG") || c.startsWith("UQH") || c.startsWith("UQI"));
         }
 
-        // ③ 용도지역 저촉여부 조정
-        String cnflc = land.getPrposAreaCnflcAt();
-        if ("2".equals(cnflc)) score -= 10;
-
-        // ④ 기타 규제 조정
-        Set<String> etcCodes = land.getLandEtcs().stream()
-                .map(LandEtc::getCode).collect(Collectors.toSet());
-        if (etcCodes.stream().anyMatch(c -> c.startsWith("GF"))) score -= 20; // 군사시설
-        if (etcCodes.stream().anyMatch(c -> c.startsWith("FA"))) score -= 10; // 보전임지
-        if (etcCodes.stream().anyMatch(c -> c.startsWith("DA"))) score += 10; // 도시개발구역
-
-        return clamp(score, 0, 100);
+        if (prposAreaCode == null && (zoneCodesStr == null || zoneCodesStr.isBlank())) return 8; // 추가 검토 필요
+        if (hasRestrictiveZone) return 3;
+        return 12; // 비교적 유리
     }
+
+    // ── AI 호출: 일사량·경사도·도로접근성 점수 + rationale ───────
+    private AiScoreResult callAiForScores(Land land, int areaScore, Integer regulationScore,
+                                           Integer zoneScore, String etcCodes, String zoneCodes) {
+        String prompt = buildAiPrompt(land, areaScore, regulationScore, zoneScore, etcCodes, zoneCodes);
+        try {
+            String response = chatClientBuilder.build()
+                    .prompt()
+                    .system("You are a professional land suitability analyst. Always respond strictly in the requested format.")
+                    .user(prompt)
+                    .call()
+                    .content();
+            return parseAiResponse(response);
+        } catch (Exception e) {
+            log.warn("AI 분석 호출 실패: {}", e.getMessage());
+            return new AiScoreResult(18, 13, 6, "AI 분석을 수행할 수 없습니다.");
+        }
+    }
+
+    private String buildAiPrompt(Land land, int areaScore, Integer regulationScore,
+                                  Integer zoneScore, String etcCodes, String zoneCodes) {
+        return String.format("""
+                You are a land suitability analyst for solar panel installation projects in South Korea.
+                Based on the land information below, evaluate the following 3 criteria and provide a brief one-line rationale for each of the 6 criteria listed.
+                
+                [Land Information]
+                Address: %s
+                Land Category: %s
+                Actual Area: %.1f sqm
+                Desired Area: %s sqm
+                Region (Province): %s
+                Region (City/County): %s
+                Zoning Code: %s
+                Zoning Conflict Status: %s
+                District Codes: %s
+                Other Regulation Codes: %s
+                
+                [Pre-calculated Scores]
+                Developable Area Score: %d / 10
+                Land Use Regulation Score: %s / 20
+                Zoning Score: %s / 15
+                
+                [Scoring Criteria]
+                1. Solar Irradiance (max 25 pts)
+                   - Excellent: 25 / Good: 22 / Average: 18 / Low: 12 / Very Low: 5
+                
+                2. Slope (max 20 pts)
+                   - 0~5 deg: 20 / 5~10 deg: 17 / 10~15 deg: 13 / 15~20 deg: 8 / 20~25 deg: 3 / over 25 deg: null (disqualified)
+                
+                3. Road Accessibility (max 10 pts)
+                   - Direct road access: 10 / within 50m: 8 / 50~100m: 6 / 100~200m: 3 / over 200m: null (disqualified)
+                
+                Respond ONLY in the exact format below, no extra text:
+                SUNLIGHT_SCORE: <number>
+                SLOPE_SCORE: <number or null>
+                ROAD_SCORE: <number or null>
+                RATIONALE_SUNLIGHT: <one-line reason in Korean>
+                RATIONALE_SLOPE: <one-line reason in Korean>
+                RATIONALE_AREA: <one-line reason in Korean>
+                RATIONALE_ROAD: <one-line reason in Korean>
+                RATIONALE_REGULATION: <one-line reason in Korean>
+                RATIONALE_ZONE: <one-line reason in Korean>
+                """,
+                nullSafe(land.getAddress()),
+                nullSafe(land.getLcCodeNm()),
+                land.getArea() != null ? land.getArea() : 0.0,
+                land.getDesiredArea() != null ? String.valueOf(land.getDesiredArea()) : "N/A",
+                nullSafe(land.getRegionSido()),
+                nullSafe(land.getRegionSigungu()),
+                nullSafe(land.getPrposAreaCode()),
+                nullSafe(land.getPrposAreaCnflcAtNm()),
+                zoneCodes.isBlank() ? "none" : zoneCodes,
+                etcCodes.isBlank() ? "none" : etcCodes,
+                areaScore,
+                regulationScore != null ? regulationScore : "disqualified",
+                zoneScore != null ? zoneScore : "disqualified"
+        );
+    }
+
+    private AiScoreResult parseAiResponse(String response) {
+        log.info("AI 분석 원본 응답:\n{}", response);
+
+        if (response == null || response.isBlank()) {
+            log.warn("AI 응답이 비어있음");
+            return new AiScoreResult(18, 13, 6, "AI 분석을 수행할 수 없습니다.");
+        }
+
+        int sunlight = 18;
+        Integer slope = 13, roadScore = 6;
+
+        // 키: 값 파싱 — 첫 번째 ": " 만 구분자로 사용 (값 안에 콜론 있어도 안전)
+        Map<String, String> lines = new HashMap<>();
+        for (String line : response.split("\n")) {
+            int idx = line.indexOf(": ");
+            if (idx > 0) {
+                String key = line.substring(0, idx).trim();
+                String val = line.substring(idx + 2).trim();
+                lines.put(key, val);
+            }
+        }
+
+        log.info("파싱된 AI 응답 키 목록: {}", lines.keySet());
+
+        try { sunlight = Integer.parseInt(lines.getOrDefault("SUNLIGHT_SCORE", "18")); } catch (Exception ignored) {}
+        try {
+            String v = lines.getOrDefault("SLOPE_SCORE", "13");
+            slope = "null".equalsIgnoreCase(v) ? null : Integer.parseInt(v);
+        } catch (Exception ignored) {}
+        try {
+            String v = lines.getOrDefault("ROAD_SCORE", "6");
+            roadScore = "null".equalsIgnoreCase(v) ? null : Integer.parseInt(v);
+        } catch (Exception ignored) {}
+
+        StringBuilder sb = new StringBuilder();
+        appendRationale(sb, "일사량", lines.get("RATIONALE_SUNLIGHT"));
+        appendRationale(sb, "경사도", lines.get("RATIONALE_SLOPE"));
+        appendRationale(sb, "개발가능면적", lines.get("RATIONALE_AREA"));
+        appendRationale(sb, "도로접근성", lines.get("RATIONALE_ROAD"));
+        appendRationale(sb, "토지이용규제", lines.get("RATIONALE_REGULATION"));
+        appendRationale(sb, "용도지역·용도지구", lines.get("RATIONALE_ZONE"));
+
+        String rationale = sb.toString().trim();
+        if (rationale.isBlank()) {
+            log.warn("rationale 조합 결과가 비어있음. 원본 응답을 그대로 사용");
+            rationale = response.trim();
+        }
+
+        return new AiScoreResult(sunlight, slope, roadScore, rationale);
+    }
+
+    private void appendRationale(StringBuilder sb, String label, String text) {
+        if (text != null && !text.isBlank()) {
+            sb.append("[").append(label).append("] ").append(text).append("\n");
+        }
+    }
+
+    private record AiScoreResult(int sunlightScore, Integer slopeScore, Integer roadScore, String rationale) {}
 
     // ═══════════════════════════════════════════════════════════
     // 2. 연도별 공시지가 추이
     // ═══════════════════════════════════════════════════════════
-
-    /**
-     * 토지 ID로 연도별 공시지가 추이를 조회합니다.
-     *
-     * <p>VWorld getPossessionAttr API에서 stdrYm(기준연월) 필드를 기준으로
-     * 연도별 최신 항목 하나씩 추출하여 추이를 구성합니다.</p>
-     */
     @Transactional(readOnly = true)
     public LandPriceHistoryResponse getLandPriceHistory(Long landId, int years) {
         Land land = landRepository.findById(landId)
@@ -266,12 +311,8 @@ public class LandAnalysisService {
             throw new CustomException(GlobalErrorCode.EXTERNAL_API_ERROR);
         }
 
-        // VWorld API 호출 (numOfRows=1000으로 여러 연도치 수집)
         PossessionAttrResponse apiResponse = vWorldService.getPossessionAttr(land.getPnu(), 1000);
-
         List<YearlyPrice> priceHistory = extractYearlyPrices(apiResponse, years, land.getArea());
-
-        // 평균 연간 상승률 계산
         double avgGrowthRate = calcAvgGrowthRate(priceHistory);
 
         int fromYear = priceHistory.isEmpty() ? 0 : priceHistory.get(0).getYear();
@@ -289,13 +330,7 @@ public class LandAnalysisService {
                 .build();
     }
 
-    /**
-     * API 응답에서 연도별 대표 공시지가를 추출합니다.
-     * stdrYm(기준연월) 기준으로 연도별 가장 최신 항목 1개씩 선택합니다.
-     */
-    private List<YearlyPrice> extractYearlyPrices(
-            PossessionAttrResponse response, int years, Double area) {
-
+    private List<YearlyPrice> extractYearlyPrices(PossessionAttrResponse response, int years, Double area) {
         if (response == null
                 || response.getPossessionAttr() == null
                 || response.getPossessionAttr().getItem() == null) {
@@ -305,23 +340,19 @@ public class LandAnalysisService {
         int currentYear = LocalDate.now().getYear();
         int fromYear    = currentYear - years + 1;
 
-        // stdrYm(예: "2023-01") 기준 연도별 가장 최신 항목 수집
         Map<Integer, PossessionAttrResponse.Item> yearMap = new TreeMap<>();
         for (PossessionAttrResponse.Item item : response.getPossessionAttr().getItem()) {
             if (item.getStdrYm() == null) continue;
             try {
                 int year = Integer.parseInt(item.getStdrYm().substring(0, 4));
                 if (year < fromYear || year > currentYear) continue;
-                // 같은 연도면 더 최신(stdrYm 큰 값) 항목으로 교체
                 yearMap.merge(year, item, (existing, newItem) ->
-                        newItem.getStdrYm().compareTo(existing.getStdrYm()) >= 0 ? newItem : existing
-                );
+                        newItem.getStdrYm().compareTo(existing.getStdrYm()) >= 0 ? newItem : existing);
             } catch (Exception e) {
                 log.warn("stdrYm 파싱 실패: {}", item.getStdrYm());
             }
         }
 
-        // YearlyPrice 목록 생성 + 전년 대비 변동률 계산
         List<YearlyPrice> result = new ArrayList<>();
         Long prevPrice = null;
         for (Map.Entry<Integer, PossessionAttrResponse.Item> entry : yearMap.entrySet()) {
@@ -342,12 +373,9 @@ public class LandAnalysisService {
         return result;
     }
 
-    // ── 평균 연간 상승률 계산 ────────────────────────────────────
     private double calcAvgGrowthRate(List<YearlyPrice> history) {
         if (history.size() < 2) return 0.0;
-        double sum = history.stream()
-                .mapToDouble(p -> p.getChangeRate() != null ? p.getChangeRate() : 0.0)
-                .sum();
+        double sum = history.stream().mapToDouble(p -> p.getChangeRate() != null ? p.getChangeRate() : 0.0).sum();
         long count = history.stream().filter(p -> p.getChangeRate() != null).count();
         if (count == 0) return 0.0;
         return Math.round((sum / count) * 10.0) / 10.0;
@@ -355,35 +383,18 @@ public class LandAnalysisService {
 
     // ── 등급 변환 ────────────────────────────────────────────────
     private String toGrade(int score) {
-        if (score >= 80) return "매우높음";
-        if (score >= 65) return "높음";
-        if (score >= 45) return "보통";
-        if (score >= 30) return "낮음";
-        return "매우낮음";
-    }
-
-    // ── 점수 근거 문자열 생성 ─────────────────────────────────────
-    private String buildRationale(Land land, int sunlight, int slope, int access, int total) {
-        return String.format(
-                "지목[%s] 면적[%.1f㎡] 위치[%s %s] | 일조량:%d점(40%%) + 경사:%d점(30%%) + 접근성:%d점(30%%) = 종합 %d점(%s)",
-                nullSafe(land.getLcCodeNm()),
-                land.getArea() != null ? land.getArea() : 0.0,
-                nullSafe(land.getRegionSido()),
-                nullSafe(land.getRegionSigungu()),
-                sunlight, slope, access,
-                total, toGrade(total)
-        );
+        if (score >= 90) return "매우 좋음";
+        if (score >= 80) return "좋음";
+        if (score >= 70) return "보통";
+        return "낮음";
     }
 
     // ── 유틸 ─────────────────────────────────────────────────────
     private Land getLandWithDetails(Long landId) {
-        // zones 와 etcs를 각각 fetch join (MultipleBagFetchException 방지)
         Land land = landRepository.findWithZonesById(landId)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
-        // etcs는 별도 쿼리로 로드
         landRepository.findWithEtcsById(landId).ifPresent(l ->
-                land.getLandEtcs().addAll(l.getLandEtcs())
-        );
+                land.getLandEtcs().addAll(l.getLandEtcs()));
         return land;
     }
 
@@ -393,9 +404,5 @@ public class LandAnalysisService {
         if (s == null || s.isBlank()) return 0L;
         try { return Long.parseLong(s.trim().replace(",", "")); }
         catch (NumberFormatException e) { return 0L; }
-    }
-
-    private int clamp(int v, int min, int max) {
-        return Math.max(min, Math.min(max, v));
     }
 }

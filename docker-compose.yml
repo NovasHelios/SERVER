@@ -13,7 +13,7 @@ services:
       - ./data/postgres:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d heilous"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d heilous" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -37,7 +37,6 @@ services:
     env_file:
       - .env
     environment:
-      # .env의 localhost를 도커 내부 컨테이너 이름으로 오버라이드
       DB_URL: jdbc:postgresql://postgres:5432/heilous
       REDIS_HOST: redis
     volumes:

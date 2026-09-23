@@ -53,7 +53,11 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
+<<<<<<< HEAD
 	// PostgreSQL + PostGIS
+=======
+	// PostgreSQL+PostGIS
+>>>>>>> e844cdde73f04f9c550115e263bab0ec07909603
 	runtimeOnly 'org.postgresql:postgresql'
 	implementation 'org.hibernate.orm:hibernate-spatial'
 
