@@ -5,7 +5,7 @@ spring:
       chat:
         options:
           model: gpt-4o
-          temperature: 0.0   # 동일 질문 → 동일 답변 보장
+          temperature: 0.0
 
   datasource:
     url: ${DB_URL}
@@ -42,9 +42,6 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        jdbc:
-          lob:
-            non_contextual_creation: true
 
   security:
     oauth2:

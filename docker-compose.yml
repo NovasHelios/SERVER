@@ -1,19 +1,17 @@
 services:
   postgres:
-    image: postgis/postgis:16-3.4-alpine
+    image: postgres:16-alpine
     container_name: heilous-postgres
     environment:
-      POSTGRES_DB: heilous
-      POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      TZ: Asia/Seoul
+      POSTGRES_DB: solar_platform
+      PGTZ: Asia/Seoul
     ports:
       - "5432:5432"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
-      - ./postgres/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d heilous"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -37,8 +35,7 @@ services:
     env_file:
       - .env
     environment:
-      # .env의 localhost를 도커 내부 컨테이너 이름으로 오버라이드
-      DB_URL: jdbc:postgresql://postgres:5432/heilous
+      DB_URL: jdbc:postgresql://postgres:5432/solar_platform
       REDIS_HOST: redis
     volumes:
       - /home/ubuntu/uploads:/app/uploads
