@@ -78,6 +78,7 @@ public class Land extends BaseEntity {
 
     // ── 용도지역 (UQA~UQE) ──────────────────────────────────────
     private String prposAreaCode;   // 코드 (예: UQA01X)
+    private String prposAreaName;   // 코드 명칭 (CSV 매핑)
     @Column(length = 1)
     private String prposAreaCnflcAt;     // 저촉여부 코드
     private String prposAreaCnflcAtNm;   // 저촉여부 명칭
@@ -141,9 +142,10 @@ public class Land extends BaseEntity {
         }
     }
 
-    public void updateLandUse(String prposAreaCode,
+    public void updateLandUse(String prposAreaCode, String prposAreaName,
                               String prposAreaCnflcAt, String prposAreaCnflcAtNm) {
         this.prposAreaCode = prposAreaCode;
+        this.prposAreaName = prposAreaName;
         this.prposAreaCnflcAt = prposAreaCnflcAt;
         this.prposAreaCnflcAtNm = prposAreaCnflcAtNm;
     }

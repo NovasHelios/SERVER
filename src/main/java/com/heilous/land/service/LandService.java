@@ -48,6 +48,7 @@ public class LandService {
     private final UserRepository userRepository;
     private final VWorldService vWorldService;
     private final ImageStorageService imageStorageService;
+    private final LandCodeService landCodeService;
 
     // 토지 등록
     @Transactional
@@ -291,6 +292,7 @@ public class LandService {
                     zones.add(LandZone.builder()
                             .land(land)
                             .code(code)
+                            .codeName(landCodeService.getName(code))
                             .cnflcAt(cnflc)
                             .cnflcAtNm(cnflcNm)
                             .build());
@@ -298,13 +300,15 @@ public class LandService {
                     etcs.add(LandEtc.builder()
                             .land(land)
                             .code(code)
+                            .codeName(landCodeService.getName(code))
                             .cnflcAt(cnflc)
                             .cnflcAtNm(cnflcNm)
                             .build());
                 }
             }
 
-            land.updateLandUse(prposAreaCode, prposAreaCnflcAt, prposAreaCnflcAtNm);
+            land.updateLandUse(prposAreaCode, landCodeService.getName(prposAreaCode),
+                    prposAreaCnflcAt, prposAreaCnflcAtNm);
 
             if (!zones.isEmpty()) landZoneRepository.saveAll(zones);
             if (!etcs.isEmpty())  landEtcRepository.saveAll(etcs);

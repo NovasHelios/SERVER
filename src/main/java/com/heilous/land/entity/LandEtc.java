@@ -26,6 +26,8 @@ public class LandEtc {
     @Column(nullable = false, length = 30)
     private String code;    // 코드 (예: ZA0006)
 
+    private String codeName; // 코드 명칭 (CSV 매핑)
+
     /** 1=포함, 2=저촉, 3=접함 */
     @Column(length = 1)
     private String cnflcAt;

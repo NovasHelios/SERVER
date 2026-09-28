@@ -42,6 +42,7 @@ public class LandDetailResponse {
 
     // 용도지역
     private String prposAreaCode;
+    private String prposAreaName;
     private String prposAreaCnflcAt;
     private String prposAreaCnflcAtNm;
 
@@ -59,12 +60,14 @@ public class LandDetailResponse {
     @Builder
     public static class ZoneItem {
         private String code;
+        private String codeName;
         private String cnflcAt;
         private String cnflcAtNm;
 
         public static ZoneItem from(LandZone z) {
             return ZoneItem.builder()
                     .code(z.getCode())
+                    .codeName(z.getCodeName())
                     .cnflcAt(z.getCnflcAt())
                     .cnflcAtNm(z.getCnflcAtNm())
                     .build();
@@ -75,12 +78,14 @@ public class LandDetailResponse {
     @Builder
     public static class EtcItem {
         private String code;
+        private String codeName;
         private String cnflcAt;
         private String cnflcAtNm;
 
         public static EtcItem from(LandEtc e) {
             return EtcItem.builder()
                     .code(e.getCode())
+                    .codeName(e.getCodeName())
                     .cnflcAt(e.getCnflcAt())
                     .cnflcAtNm(e.getCnflcAtNm())
                     .build();
@@ -111,6 +116,7 @@ public class LandDetailResponse {
                 .x(land.getX())
                 .y(land.getY())
                 .prposAreaCode(land.getPrposAreaCode())
+                .prposAreaName(land.getPrposAreaName())
                 .prposAreaCnflcAt(land.getPrposAreaCnflcAt())
                 .prposAreaCnflcAtNm(land.getPrposAreaCnflcAtNm())
                 .landZones(land.getLandZones().stream().map(ZoneItem::from).toList())
