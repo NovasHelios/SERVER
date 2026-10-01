@@ -12,8 +12,10 @@ import com.heilous.land.dto.RegionStatsResponse;
 import com.heilous.land.entity.Land;
 import com.heilous.land.entity.LandEtc;
 import com.heilous.land.entity.LandImage;
+import com.heilous.land.entity.LandPrice;
 import com.heilous.land.entity.LandZone;
 import com.heilous.land.repository.LandImageRepository;
+import com.heilous.land.repository.LandPriceRepository;
 import com.heilous.land.repository.LandRepository;
 import com.heilous.land.repository.LandSpecification;
 import com.heilous.land.repository.LandZoneRepository;
@@ -22,6 +24,7 @@ import com.heilous.user.entity.User;
 import com.heilous.user.enums.UserRole;
 import com.heilous.user.repository.UserRepository;
 import com.heilous.vworld.dto.AddressLandResponse;
+import com.heilous.vworld.dto.LandPriceWfsResponse;
 import com.heilous.vworld.dto.VWorldLandResponse;
 import com.heilous.vworld.dto.VWorldWfsResponse;
 import com.heilous.vworld.service.VWorldService;
@@ -45,6 +48,7 @@ public class LandService {
     private final LandImageRepository landImageRepository;
     private final LandZoneRepository landZoneRepository;
     private final LandEtcRepository landEtcRepository;
+    private final LandPriceRepository landPriceRepository;
     private final UserRepository userRepository;
     private final VWorldService vWorldService;
     private final ImageStorageService imageStorageService;
@@ -140,6 +144,7 @@ public class LandService {
         // WFS: 용도지역/지구/기타 조회 및 저장
         if (pnu != null) {
             applyLandUseInfo(land, pnu);
+            applyLandPriceInfo(land, pnu);
         }
 
         // 이미지 저장
@@ -176,9 +181,10 @@ public class LandService {
         Land land = landRepository.findWithImagesById(landId)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
 
-        // zones, etcs는 별도 쿼리로 로딩 (hibernate 1차 캐시로 같은 엔티티에 merge됨)
+        // zones, etcs, prices는 별도 쿼리로 로딩 (hibernate 1차 캐시로 같은 엔티티에 merge됨)
         landRepository.findWithZonesById(landId);
         landRepository.findWithEtcsById(landId);
+        landRepository.findWithPricesById(landId);
 
         return LandDetailResponse.from(land);
     }
@@ -332,6 +338,40 @@ public class LandService {
         return prefix.compareTo("UQF") >= 0 && prefix.compareTo("UQQ") < 0;
     }
 
+    /**
+     * 공시지가 WFS 결과를 파싱해 land_prices 테이블에 저장하고,
+     * road_side_code를 lands 테이블에 저장
+     */
+    private void applyLandPriceInfo(Land land, String pnu) {
+        try {
+            LandPriceWfsResponse wfs = vWorldService.getLandPriceByPnu(pnu);
+            if (wfs == null || wfs.getFeatures() == null || wfs.getFeatures().isEmpty()) return;
+
+            LandPriceWfsResponse.Properties props = wfs.getFeatures().get(0).getProperties();
+            if (props == null) return;
+
+            // road_side_code → lands 테이블
+            land.updateRoadSideCode(props.getRoadSideCode());
+
+            // 공시지가 → land_prices 테이블
+            LandPrice price = LandPrice.builder()
+                    .land(land)
+                    .stdrYear(props.getPblntfPclndStdrYear())
+                    .stdrMt(props.getPblntfPclndStdrMt())
+                    .pblntfPclnd(props.getPblntfPclnd())
+                    .pstyr1PblntfPclnd(props.getPstyr1PblntfPclnd())
+                    .pstyr2PblntfPclnd(props.getPstyr2PblntfPclnd())
+                    .pstyr3PblntfPclnd(props.getPstyr3PblntfPclnd())
+                    .pstyr4PblntfPclnd(props.getPstyr4PblntfPclnd())
+                    .build();
+
+            landPriceRepository.save(price);
+
+        } catch (Exception e) {
+            log.warn("공시지가 정보 저장 실패 (pnu={}): {}", pnu, e.getMessage());
+        }
+    }
+
     // 토지 수정
     @Transactional
     public void updateLand(
@@ -409,6 +449,8 @@ public class LandService {
             landZoneRepository.deleteByLandId(land.getId());
             landEtcRepository.deleteByLandId(land.getId());
             applyLandUseInfo(land, pnu);
+            landPriceRepository.deleteByLandId(land.getId());
+            applyLandPriceInfo(land, pnu);
         }
     }
 
