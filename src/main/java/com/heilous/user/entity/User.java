@@ -1,6 +1,7 @@
 package com.heilous.user.entity;
 
 import com.heilous.common.entity.BaseEntity;
+import com.heilous.user.enums.UserPlan;
 import com.heilous.user.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
@@ -32,6 +33,11 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private UserRole role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private UserPlan plan = UserPlan.FREE;
+
     @Column(nullable = false)
     private boolean isVerified;
 
@@ -39,32 +45,28 @@ public class User extends BaseEntity {
     private boolean isActive;
 
     @Column
-    private String provider; // "google" 등 소셜 로그인 제공자, 일반 가입은 null
+    private String provider;
 
-    private String profileImagePath; // 프로필 이미지 파일명
+    private String profileImagePath;
 
-    // 계정 비활성화
     public void deactivate() {
         this.isActive = false;
     }
 
-    // 프로필 수정
-    public void updateInfo(
-            String name,
-            String phone
-    ) {
+    public void updateInfo(String name, String phone) {
         this.name = name;
         this.phone = phone;
     }
 
-    // 비밀번호 변경
-    public void changePassword(
-            String password
-    ) {
+    public void changePassword(String password) {
         this.password = password;
     }
 
     public void updateProfileImage(String profileImagePath) {
         this.profileImagePath = profileImagePath;
+    }
+
+    public void changePlan(UserPlan plan) {
+        this.plan = plan;
     }
 }

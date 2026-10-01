@@ -2,10 +2,12 @@ package com.heilous.land.dto;
 
 import com.heilous.land.entity.Land;
 import com.heilous.land.entity.LandEtc;
+import com.heilous.land.entity.LandPrice;
 import com.heilous.land.entity.LandZone;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -46,15 +48,22 @@ public class LandDetailResponse {
     private String prposAreaCnflcAt;
     private String prposAreaCnflcAtNm;
 
+    // 도로접면
+    private String roadSideCode;
+
     // 용도지구
     private List<ZoneItem> landZones;
 
     // 기타
     private List<EtcItem> landEtcs;
 
+    // 공시지가
+    private List<PriceItem> landPrices;
+
     // 이미지/문서
     private List<String> landImagePaths;
     private String documentPath;
+    private LocalDateTime createdAt;
 
     @Getter
     @Builder
@@ -66,11 +75,8 @@ public class LandDetailResponse {
 
         public static ZoneItem from(LandZone z) {
             return ZoneItem.builder()
-                    .code(z.getCode())
-                    .codeName(z.getCodeName())
-                    .cnflcAt(z.getCnflcAt())
-                    .cnflcAtNm(z.getCnflcAtNm())
-                    .build();
+                    .code(z.getCode()).codeName(z.getCodeName())
+                    .cnflcAt(z.getCnflcAt()).cnflcAtNm(z.getCnflcAtNm()).build();
         }
     }
 
@@ -84,11 +90,30 @@ public class LandDetailResponse {
 
         public static EtcItem from(LandEtc e) {
             return EtcItem.builder()
-                    .code(e.getCode())
-                    .codeName(e.getCodeName())
-                    .cnflcAt(e.getCnflcAt())
-                    .cnflcAtNm(e.getCnflcAtNm())
-                    .build();
+                    .code(e.getCode()).codeName(e.getCodeName())
+                    .cnflcAt(e.getCnflcAt()).cnflcAtNm(e.getCnflcAtNm()).build();
+        }
+    }
+
+    @Getter
+    @Builder
+    public static class PriceItem {
+        private String stdrYear;
+        private String stdrMt;
+        private Long pblntfPclnd;
+        private Long pstyr1PblntfPclnd;
+        private Long pstyr2PblntfPclnd;
+        private Long pstyr3PblntfPclnd;
+        private Long pstyr4PblntfPclnd;
+
+        public static PriceItem from(LandPrice p) {
+            return PriceItem.builder()
+                    .stdrYear(p.getStdrYear()).stdrMt(p.getStdrMt())
+                    .pblntfPclnd(p.getPblntfPclnd())
+                    .pstyr1PblntfPclnd(p.getPstyr1PblntfPclnd())
+                    .pstyr2PblntfPclnd(p.getPstyr2PblntfPclnd())
+                    .pstyr3PblntfPclnd(p.getPstyr3PblntfPclnd())
+                    .pstyr4PblntfPclnd(p.getPstyr4PblntfPclnd()).build();
         }
     }
 
@@ -119,10 +144,13 @@ public class LandDetailResponse {
                 .prposAreaName(land.getPrposAreaName())
                 .prposAreaCnflcAt(land.getPrposAreaCnflcAt())
                 .prposAreaCnflcAtNm(land.getPrposAreaCnflcAtNm())
+                .roadSideCode(land.getRoadSideCode())
                 .landZones(land.getLandZones().stream().map(ZoneItem::from).toList())
                 .landEtcs(land.getLandEtcs().stream().map(EtcItem::from).toList())
+                .landPrices(land.getLandPrices().stream().map(PriceItem::from).toList())
                 .landImagePaths(land.getLandImages().stream().map(img -> img.getImagePath()).toList())
                 .documentPath(land.getDocumentPath())
+                .createdAt(land.getCreatedAt())
                 .build();
     }
 }

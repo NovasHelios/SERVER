@@ -1,5 +1,6 @@
 package com.heilous.user.dto;
 
+import com.heilous.user.enums.UserPlan;
 import com.heilous.user.enums.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,5 +13,6 @@ public class UserMeResponse {
     private String name;
     private String phone;
     private UserRole role;
+    private UserPlan plan;
     private String profileImagePath;
 }

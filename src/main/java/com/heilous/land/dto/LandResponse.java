@@ -4,6 +4,7 @@ import com.heilous.land.entity.Land;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -21,6 +22,8 @@ public class LandResponse {
     private Double y;
     private String lcCodeNm;
     private String regstrSeCodeNm;
+    private String prposAreaName;
+    private LocalDateTime createdAt;
 
     public static LandResponse from(Land land) {
         return LandResponse.builder()
@@ -35,6 +38,8 @@ public class LandResponse {
                 .y(land.getY())
                 .lcCodeNm(land.getLcCodeNm())
                 .regstrSeCodeNm(land.getRegstrSeCodeNm())
+                .prposAreaName(land.getPrposAreaName())
+                .createdAt(land.getCreatedAt())
                 .build();
     }
 }

@@ -18,6 +18,9 @@ public enum GlobalErrorCode {
     // 사용자/사업자 에러
     USER_NOT_FOUND(404, "USER_001", "사용자를 찾을 수 없습니다."),
     BUSINESS_NUMBER_ALREADY_EXISTS(409, "COMP_001", "이미 등록된 사업자 번호입니다."),
+    BUSINESS_PROFILE_NOT_FOUND(404, "COMP_002", "사업자 프로필을 찾을 수 없습니다."),
+    PLAN_REQUIRED(403, "COMP_003", "BUSINESS 플랜에서만 사용 가능한 기능입니다."),
+
     LAND_NOT_FOUND(404, "LAND_001", "토지를 찾을 수 없습니다."),
     LAND_ADDRESS_ALREADY_EXISTS(409, "LAND_002", "이미 등록된 토지 주소입니다."),
 

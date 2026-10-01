@@ -32,7 +32,9 @@ public interface LandRepository extends JpaRepository<Land, Long>, JpaSpecificat
     @Query("select l from Land l left join fetch l.landEtcs where l.id = :id")
     Optional<Land> findWithEtcsById(@Param("id") Long id);
 
-    /** 시/도, 시/군/구, 거래유형별 토지 수 집계 */
+    @Query("select l from Land l left join fetch l.landPrices where l.id = :id")
+    Optional<Land> findWithPricesById(@Param("id") Long id);
+
     @Query("select l.regionSido, l.regionSigungu, l.transactionType, count(l) " +
            "from Land l " +
            "where l.regionSido is not null and l.regionSigungu is not null " +
