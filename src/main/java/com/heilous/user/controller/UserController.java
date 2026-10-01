@@ -84,7 +84,7 @@ public class UserController {
         return APIResponse.ok("플랜이 변경되었습니다.");
     }
 
-    @Operation(summary = "전체 유저 플랜 목록 조회")
+    @Operation(summary = "전체 유저 플랜 목록 조회 — 개발용임")
     @GetMapping("/plans")
     public APIResponse<List<UserPlanResponse>> getAllUserPlans() {
         return APIResponse.ok(userService.getAllUserPlans());
