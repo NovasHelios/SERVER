@@ -115,6 +115,9 @@ public class LandService {
 
         String[] regions = parseRegions(ldCodeNm);
 
+        // 필수 토지 정보 검증
+        validateLandInfo(area, pnu, lcCodeNm, regstrSeCodeNm, addressLandResponse.getX(), addressLandResponse.getY());
+
         Land land = Land.builder()
                 .owner(owner)
                 .address(addressLandResponse.getAddressName())
@@ -257,6 +260,15 @@ public class LandService {
         if (parts.length > 1) result[1] = parts[1];
         if (parts.length > 2) result[2] = parts[2];
         return result;
+    }
+
+    // 필수 토지 정보 검증 — null이면 등록/수정 실패
+    private void validateLandInfo(Double area, String pnu, String lcCodeNm,
+                                   String regstrSeCodeNm, Double x, Double y) {
+        if (area == null || pnu == null || lcCodeNm == null
+                || regstrSeCodeNm == null || x == null || y == null) {
+            throw new CustomException(GlobalErrorCode.LAND_INFO_INCOMPLETE);
+        }
     }
 
     /**
@@ -422,6 +434,9 @@ public class LandService {
         }
 
         String[] regions = parseRegions(ldCodeNm);
+
+        // 필수 토지 정보 검증
+        validateLandInfo(area, pnu, lcCodeNm, regstrSeCodeNm, addressLandResponse.getX(), addressLandResponse.getY());
 
         land.updateLand(
                 addressLandResponse.getAddressName(),

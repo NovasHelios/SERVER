@@ -23,6 +23,7 @@ public enum GlobalErrorCode {
 
     LAND_NOT_FOUND(404, "LAND_001", "토지를 찾을 수 없습니다."),
     LAND_ADDRESS_ALREADY_EXISTS(409, "LAND_002", "이미 등록된 토지 주소입니다."),
+    LAND_INFO_INCOMPLETE(422, "LAND_003", "토지 정보를 불러오지 못했습니다. 주소를 확인해주세요."),
 
     // 찜하기 에러
     WISH_NOT_FOUND(404, "WISH_001", "찜한 토지를 찾을 수 없습니다."),
