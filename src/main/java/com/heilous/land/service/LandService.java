@@ -226,7 +226,7 @@ public class LandService {
             long count      = (Long) row[3];
 
             map.computeIfAbsent(sido, k -> new LinkedHashMap<>())
-               .computeIfAbsent(sigungu, k -> new long[3]); // [0]=SALE [1]=LEASE [2]=BUSINESS_HOPE
+                    .computeIfAbsent(sigungu, k -> new long[3]); // [0]=SALE [1]=LEASE [2]=BUSINESS_HOPE
 
             long[] counts = map.get(sido).get(sigungu);
             if (type == Land.TransactionType.SALE)           counts[0] += count;
@@ -238,12 +238,12 @@ public class LandService {
         map.forEach((sido, sigunguMap) -> {
             List<RegionStatsResponse.SigunguStats> sigungus = new ArrayList<>();
             sigunguMap.forEach((sigungu, counts) ->
-                sigungus.add(RegionStatsResponse.SigunguStats.builder()
-                        .sigungu(sigungu)
-                        .saleCount(counts[0])
-                        .leaseCount(counts[1])
-                        .businessHopeCount(counts[2])
-                        .build())
+                    sigungus.add(RegionStatsResponse.SigunguStats.builder()
+                            .sigungu(sigungu)
+                            .saleCount(counts[0])
+                            .leaseCount(counts[1])
+                            .businessHopeCount(counts[2])
+                            .build())
             );
             result.add(RegionStatsResponse.builder().sido(sido).sigungus(sigungus).build());
         });
@@ -264,7 +264,7 @@ public class LandService {
 
     // 필수 토지 정보 검증 — null이면 등록/수정 실패
     private void validateLandInfo(Double area, String pnu, String lcCodeNm,
-                                   String regstrSeCodeNm, Double x, Double y) {
+                                  String regstrSeCodeNm, Double x, Double y) {
         if (area == null || pnu == null || lcCodeNm == null
                 || regstrSeCodeNm == null || x == null || y == null) {
             throw new CustomException(GlobalErrorCode.LAND_INFO_INCOMPLETE);
