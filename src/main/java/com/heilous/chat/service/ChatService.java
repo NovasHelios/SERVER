@@ -44,6 +44,9 @@ public class ChatService {
         }
         Land land = landRepository.findById(landId)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
+        if (land.getOwner().getEmail().equals(email)) {
+            throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
+        }
         if (chatRoomRepository.existsByCompanyIdAndLandId(company.getId(), landId)) {
             throw new CustomException(GlobalErrorCode.CHAT_ROOM_ALREADY_EXISTS);
         }

@@ -105,10 +105,11 @@ public class BusinessProfileService {
         return BusinessProfileResponse.from(profile);
     }
 
-    // 전체 사업자 프로필 조회
+    // 전체 사업자 프로필 조회 (자신 제외)
     @Transactional(readOnly = true)
-    public List<BusinessProfileResponse> getAllProfiles() {
+    public List<BusinessProfileResponse> getAllProfiles(String email) {
         return businessProfileRepository.findAll().stream()
+                .filter(p -> !p.getUser().getEmail().equals(email))
                 .map(BusinessProfileResponse::from)
                 .toList();
     }

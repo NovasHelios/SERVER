@@ -78,10 +78,12 @@ public class BusinessController {
         return APIResponse.ok(businessProfileService.getMyProfile(email));
     }
 
-    @Operation(summary = "사업자 프로필 전체 조회")
+    @Operation(summary = "사업자 프로필 전체 조회 — 본인은 제외됩니다.")
     @GetMapping("/profiles")
-    public APIResponse<List<BusinessProfileResponse>> getAllProfiles() {
-        return APIResponse.ok(businessProfileService.getAllProfiles());
+    public APIResponse<List<BusinessProfileResponse>> getAllProfiles(
+            @AuthenticationPrincipal String email
+    ) {
+        return APIResponse.ok(businessProfileService.getAllProfiles(email));
     }
 
     @Operation(summary = "사업자 프로필 상세 조회 — 프로필 ID로 조회합니다.")
