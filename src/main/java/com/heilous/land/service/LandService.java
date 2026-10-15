@@ -509,7 +509,36 @@ public class LandService {
         land.changeStatus(Land.LandStatus.REJECTED);
     }
 
-    // 토지 이미지 추가/수정
+    // 토지 이미지 전면 교체 (기존 전체 삭제 후 새 이미지 3~5장 등록)
+    @Transactional
+    public void replaceLandImages(Long landId, List<MultipartFile> images, String email) {
+
+        Land land = landRepository.findWithImagesById(landId)
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
+
+        if (!land.getOwner().getEmail().equals(email)) {
+            throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
+        }
+
+        List<MultipartFile> validImages = images.stream()
+                .filter(f -> f != null && !f.isEmpty()).toList();
+
+        if (validImages.size() < 3) throw new CustomException(GlobalErrorCode.LAND_IMAGE_REQUIRED);
+        if (validImages.size() > 5) throw new CustomException(GlobalErrorCode.LAND_IMAGE_MAX_EXCEEDED);
+
+        // 기존 이미지 전체 삭제
+        List<LandImage> existing = landImageRepository.findByLandId(landId);
+        existing.forEach(img -> imageStorageService.delete(img.getImagePath(), "lands"));
+        landImageRepository.deleteAll(existing);
+        existing.forEach(land::removeImage);
+
+        // 새 이미지 등록
+        for (MultipartFile image : validImages) {
+            String filename = imageStorageService.store(image, "lands");
+            landImageRepository.save(LandImage.builder().land(land).imagePath(filename).build());
+        }
+    }
+
     // 증명서 경로 조회 (어드민용)
     @Transactional(readOnly = true)
     public String getDocumentPath(Long landId, String email) {
