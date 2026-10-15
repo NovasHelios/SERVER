@@ -434,24 +434,24 @@ public class LandService {
 
     // 토지 삭제
     @Transactional
-    public void deleteLand(
-            Long landId,
-            String email
-    ) {
+    public void deleteLand(Long landId, String email) {
 
-        Land land = landRepository.findById(landId)
-                .orElseThrow(() ->
-                        new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
+        Land land = landRepository.findWithImagesById(landId)
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new CustomException(GlobalErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
 
-        if (!land.getOwner().getEmail().equals(email)
-                && user.getRole() != UserRole.ADMIN) {
-
+        if (!land.getOwner().getEmail().equals(email) && user.getRole() != UserRole.ADMIN) {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
+
+        // 연관 컬렉션 초기화 (lazy → eager 로딩으로 cascade 정상 동작)
+        landRepository.findWithZonesById(landId);
+        landRepository.findWithEtcsById(landId);
+        landRepository.findWithChatRoomsById(landId);
+        landRepository.findWithWishesById(landId);
+        landRepository.findWithLandAppliesById(landId);
 
         // 이미지 파일 삭제
         land.getLandImages().forEach(img ->
