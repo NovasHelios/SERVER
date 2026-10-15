@@ -41,6 +41,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - /home/ubuntu/uploads:/app/uploads
+      - /home/ubuntu/SERVER/src/main/resources/data:/app/data:ro
     depends_on:
       postgres:
         condition: service_healthy
