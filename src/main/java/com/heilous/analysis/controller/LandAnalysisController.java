@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/lands/{landId}/analysis")
 @SecurityRequirement(name = "bearerAuth")
 @RequiredArgsConstructor
+@CrossOrigin
 @Validated
 public class LandAnalysisController {
 

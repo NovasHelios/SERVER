@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@CrossOrigin
 @RequestMapping("/api/ai")
 @SecurityRequirement(name = "bearerAuth")
 @RequiredArgsConstructor
