@@ -54,17 +54,17 @@ public class DevelopmentScoreResponse {
     @Schema(description = "희망 면적(㎡) — 사용자 입력값")
     private Double desiredArea;
 
-    @Schema(description = "용도지역 코드")
-    private String prposAreaCode;
+    @Schema(description = "용도지역 이름")
+    private String prposAreaName;
 
     @Schema(description = "용도지역 저촉여부")
     private String zoneConflict;
 
-    @Schema(description = "용도지구 코드 목록 (쉼표 구분)")
-    private String zoneCodes;
+    @Schema(description = "용도지구 이름 목록")
+    private String zoneNames;
 
-    @Schema(description = "기타 규제 코드 목록 (쉼표 구분)")
-    private String etcCodes;
+    @Schema(description = "기타 규제 이름 목록")
+    private String etcNames;
 
     @Schema(description = "각 항목별 점수 산출 이유 (AI 생성)")
     private String rationale;

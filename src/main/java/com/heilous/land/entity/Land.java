@@ -72,17 +72,20 @@ public class Land extends BaseEntity {
     private String prposAreaCnflcAt;
     private String prposAreaCnflcAtNm;
 
-    // 도로접면코드
-    private String roadSideCode;
+    // WFS bbox (EPSG:4326)
+    private Double bboxMinLon;
+    private Double bboxMinLat;
+    private Double bboxMaxLon;
+    private Double bboxMaxLat;
+
+    // 경사도 (평균)
+    private Double averageSlope;
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LandZone> landZones = new ArrayList<>();
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LandEtc> landEtcs = new ArrayList<>();
-
-    @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LandPrice> landPrices = new ArrayList<>();
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<LandImage> landImages = new ArrayList<>();
@@ -119,9 +122,19 @@ public class Land extends BaseEntity {
         this.prposAreaCnflcAt = prposAreaCnflcAt; this.prposAreaCnflcAtNm = prposAreaCnflcAtNm;
     }
 
-    public void updateRoadSideCode(String roadSideCode) { this.roadSideCode = roadSideCode; }
     public void changeStatus(LandStatus status) { this.status = status; }
     public void addImage(LandImage image) { this.landImages.add(image); }
     public void removeImage(LandImage image) { this.landImages.remove(image); }
     public void updateDocumentPath(String documentPath) { this.documentPath = documentPath; }
+
+    public void updateBbox(double minLon, double minLat, double maxLon, double maxLat) {
+        this.bboxMinLon = minLon;
+        this.bboxMinLat = minLat;
+        this.bboxMaxLon = maxLon;
+        this.bboxMaxLat = maxLat;
+    }
+
+    public void updateAverageSlope(Double averageSlope) {
+        this.averageSlope = averageSlope;
+    }
 }

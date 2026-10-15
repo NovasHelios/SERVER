@@ -32,8 +32,14 @@ public interface LandRepository extends JpaRepository<Land, Long>, JpaSpecificat
     @Query("select l from Land l left join fetch l.landEtcs where l.id = :id")
     Optional<Land> findWithEtcsById(@Param("id") Long id);
 
-    @Query("select l from Land l left join fetch l.landPrices where l.id = :id")
-    Optional<Land> findWithPricesById(@Param("id") Long id);
+    @Query("select l from Land l left join fetch l.chatRooms where l.id = :id")
+    Optional<Land> findWithChatRoomsById(@Param("id") Long id);
+
+    @Query("select l from Land l left join fetch l.wishes where l.id = :id")
+    Optional<Land> findWithWishesById(@Param("id") Long id);
+
+    @Query("select l from Land l left join fetch l.landApplies where l.id = :id")
+    Optional<Land> findWithLandAppliesById(@Param("id") Long id);
 
     @Query("select l.regionSido, l.regionSigungu, l.transactionType, count(l) " +
            "from Land l " +

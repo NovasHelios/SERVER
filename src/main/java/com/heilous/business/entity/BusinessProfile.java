@@ -60,6 +60,7 @@ public class BusinessProfile extends BaseEntity {
 
     private String businessLicensePath;
     private boolean businessVerified;
+    private String profileImagePath;    // 사업자 프로필 사진
 
     public void update(String companyName, String businessNumber, String department,
                        String jobTitle, List<String> mainFields, String mainFieldDescription,
@@ -82,6 +83,10 @@ public class BusinessProfile extends BaseEntity {
 
     public void updateLicensePath(String path) {
         this.businessLicensePath = path;
+    }
+
+    public void updateProfileImagePath(String path) {
+        this.profileImagePath = path;
     }
 
     public void verify() {

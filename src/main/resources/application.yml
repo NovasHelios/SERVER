@@ -114,3 +114,6 @@ server:
 logging:
   level:
     org.springframework.security: DEBUG
+
+slope:
+  raster-path: ${SLOPE_URL}

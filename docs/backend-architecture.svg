@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960" role="img" aria-labelledby="title desc">
+  <title id="title">HEILOUS 백엔드 아키텍처</title>
+  <desc id="desc">클라이언트 요청이 Spring Boot 애플리케이션을 거쳐 도메인 모듈, 데이터 저장소 및 외부 서비스와 연결되는 구조.</desc>
+  <defs>
+    
+    
+    
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#333333"/></marker>
+    
+    <style>
+      text{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;fill:#111111}
+      .small{font-size:15px;fill:#555555}.label{font-size:17px;font-weight:700}.node{fill:#fff;stroke:#D5D5D5;stroke-width:1.5}.module{fill:#FFFFFF;stroke:#C8C8C8;stroke-width:1.2}
+      .line{fill:none;stroke:#333333;stroke-width:2.5;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1440" height="960" rx="36" fill="#FFFFFF"/>
+  
+
+  <!-- Header -->
+  <g transform="translate(86 72)">
+    <rect width="54" height="54" rx="17" fill="#111111"/>
+    <path d="M15 35V19h24v16M20 24h14M20 29h14M20 34h8" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="72" y="23" font-size="14" font-weight="800" letter-spacing="2.2" fill="#111111">HEILOUS / PLATFORM</text>
+    <text x="72" y="57" font-size="34" font-weight="800">백엔드 아키텍처</text>
+  </g>
+  <text x="1354" y="116" text-anchor="end" font-size="15" fill="#555555">현재 구현 기준 · 모듈형 모놀리스</text>
+
+  <!-- Client cards -->
+  <g >
+    <rect class="node" x="70" y="286" width="208" height="112" rx="22"/>
+    <rect x="92" y="310" width="44" height="62" rx="7" fill="#F0F0F0" stroke="#111111" stroke-width="2"/>
+    <rect x="99" y="317" width="30" height="42" rx="3" fill="#FFFFFF"/><circle cx="114" cy="365" r="2.5" fill="#111111"/>
+    <text class="label" x="153" y="334">클라이언트</text><text class="small" x="153" y="360">웹 · 모바일</text>
+  </g>
+  <g >
+    <rect class="node" x="70" y="455" width="208" height="94" rx="22"/>
+    <circle cx="115" cy="502" r="23" fill="#F0F0F0"/><path d="M105 506h20m-16-8h12m-12 16h12" stroke="#333333" stroke-width="2.5" stroke-linecap="round"/>
+    <text class="label" x="153" y="496">운영자</text><text class="small" x="153" y="521">관리자 API</text>
+  </g>
+
+  <!-- App boundary -->
+  <rect x="344" y="198" width="650" height="496" rx="30" fill="#FFFFFF" stroke="#BEBEBE" stroke-width="2" />
+  <rect x="344" y="198" width="650" height="82" rx="30" fill="#F0F0F0"/>
+  <path d="M344 250v30h650v-30" fill="#F0F0F0"/>
+  <text x="382" y="235" font-size="13" font-weight="800" letter-spacing="1.6" fill="#111111">APPLICATION</text>
+  <text x="382" y="263" font-size="22" font-weight="800">Spring Boot · Java 21</text>
+  <rect x="817" y="222" width="142" height="34" rx="17" fill="#FFFFFF"/><text x="888" y="244" text-anchor="middle" font-size="13" font-weight="700" fill="#444444">단일 애플리케이션</text>
+
+  <!-- API / realtime -->
+  <rect x="375" y="302" width="278" height="68" rx="16" fill="#111111"/>
+  <path d="M397 326h22m-22 10h22m-22 10h14" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"/>
+  <text x="433" y="330" font-size="16" font-weight="800" fill="#FFFFFF">REST API</text><text x="433" y="351" font-size="13" fill="#E5E5E5">JWT · OAuth2 · Validation</text>
+  <rect x="671" y="302" width="292" height="68" rx="16" fill="#F5F5F5" stroke="#D5D5D5"/>
+  <path d="M696 325h22v17h-13l-7 6v-6h-2z" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
+  <text x="730" y="330" font-size="16" font-weight="800">실시간 채팅</text><text x="730" y="351" font-size="13" fill="#555555">WebSocket · STOMP</text>
+
+  <!-- Domain layer: both API entry points terminate on this boundary -->
+  <rect x="365" y="396" width="610" height="210" rx="18" fill="#FFFFFF" stroke="#BEBEBE" stroke-width="1.5"/>
+  <text x="378" y="421" font-size="13" font-weight="800" letter-spacing="1.2" fill="#555555">DOMAIN MODULES</text>
+  <g>
+    <rect class="module" x="375" y="439" width="180" height="74" rx="15"/><circle cx="400" cy="464" r="8" fill="#111111"/><text x="418" y="470" font-size="15" font-weight="750">인증 · 사용자</text><text x="397" y="495" font-size="12" fill="#555555">계정 · 프로필 · 권한</text>
+    <rect class="module" x="570" y="439" width="180" height="74" rx="15"/><circle cx="595" cy="464" r="8" fill="#555555"/><text x="613" y="470" font-size="15" font-weight="750">토지</text><text x="592" y="495" font-size="12" fill="#555555">등록 · 검색 · 이미지</text>
+    <rect class="module" x="765" y="439" width="198" height="74" rx="15"/><circle cx="790" cy="464" r="8" fill="#555555"/><text x="808" y="470" font-size="15" font-weight="750">분석 · AI 보고서</text><text x="787" y="495" font-size="12" fill="#555555">개발 점수 · 가격 이력</text>
+    <rect class="module" x="375" y="530" width="180" height="74" rx="15"/><circle cx="400" cy="555" r="8" fill="#555555"/><text x="418" y="561" font-size="15" font-weight="750">관심 · 신청</text><text x="397" y="586" font-size="12" fill="#555555">사업자 프로필 포함</text>
+    <rect class="module" x="570" y="530" width="180" height="74" rx="15"/><circle cx="595" cy="555" r="8" fill="#555555"/><text x="613" y="561" font-size="15" font-weight="750">채팅</text><text x="592" y="586" font-size="12" fill="#555555">대화 · 메시지 · 첨부</text>
+    <rect class="module" x="765" y="530" width="198" height="74" rx="15"/><circle cx="790" cy="555" r="8" fill="#444444"/><text x="808" y="561" font-size="15" font-weight="750">관리자</text><text x="787" y="586" font-size="12" fill="#555555">승인 · 문서 관리</text>
+  </g>
+  <text x="669" y="631" text-anchor="middle" font-size="13" fill="#555555">도메인별 Controller → Service → Repository 구조</text>
+
+  <!-- Data stores -->
+  <g >
+    <rect class="node" x="1080" y="266" width="290" height="144" rx="22"/>
+    <ellipse cx="1130" cy="308" rx="27" ry="10" fill="#F0F0F0" stroke="#111111" stroke-width="2"/><path d="M1103 308v45c0 6 12 11 27 11s27-5 27-11v-45m-54 15c0 6 12 11 27 11s27-5 27-11m-54 15c0 6 12 11 27 11s27-5 27-11" fill="#F0F0F0" stroke="#111111" stroke-width="2"/>
+    <text x="1177" y="310" font-size="17" font-weight="800">PostgreSQL 16</text><text x="1177" y="337" font-size="14" fill="#444444">+ PostGIS</text><text x="1104" y="385" font-size="13" fill="#555555">사용자 · 토지 · 채팅 · 거래 데이터</text>
+  </g>
+  <g >
+    <rect class="node" x="1080" y="437" width="290" height="112" rx="22"/>
+    <rect x="1104" y="463" width="51" height="48" rx="10" fill="#F0F0F0"/><path d="M1116 475h27m-27 8h27m-27 8h18" stroke="#333333" stroke-width="2.5" stroke-linecap="round"/>
+    <text x="1177" y="478" font-size="17" font-weight="800">Redis 7</text><text x="1177" y="505" font-size="13" fill="#555555">이메일 인증 · 재설정 코드</text>
+  </g>
+  <g >
+    <rect class="node" x="1080" y="576" width="290" height="112" rx="22"/>
+    <rect x="1104" y="602" width="51" height="48" rx="10" fill="#F0F0F0"/><path d="M1118 613h23v26h-23z m5 7h13m-13 6h13m-13 6h8" fill="none" stroke="#555555" stroke-width="2" stroke-linecap="round"/>
+    <text x="1177" y="617" font-size="17" font-weight="800">파일 저장소</text><text x="1177" y="644" font-size="13" fill="#555555">현재: 앱 로컬 업로드 경로</text>
+  </g>
+
+  <!-- External services strip -->
+  <rect x="70" y="760" width="1300" height="126" rx="26" fill="#FFFFFF" stroke="#D5D5D5" stroke-width="1.5" />
+  <text x="105" y="797" font-size="13" font-weight="800" letter-spacing="1.3" fill="#555555">CONNECTED SERVICES</text>
+  <g>
+    <rect x="105" y="817" width="276" height="48" rx="14" fill="#F5F5F5"/><circle cx="130" cy="841" r="9" fill="#111111"/><text x="151" y="847" font-size="15" font-weight="700">Google · Kakao · Naver</text><text x="353" y="847" text-anchor="end" font-size="12" fill="#555555">OAuth2</text>
+    <rect x="400" y="817" width="210" height="48" rx="14" fill="#F5F5F5"/><circle cx="425" cy="841" r="9" fill="#555555"/><text x="446" y="847" font-size="15" font-weight="700">SMTP 메일</text>
+    <rect x="629" y="817" width="268" height="48" rx="14" fill="#F5F5F5"/><circle cx="654" cy="841" r="9" fill="#555555"/><text x="675" y="847" font-size="15" font-weight="700">VWorld · Kakao 지도</text>
+    <rect x="916" y="817" width="418" height="48" rx="14" fill="#F5F5F5"/><circle cx="941" cy="841" r="9" fill="#555555"/><text x="962" y="847" font-size="15" font-weight="700">OpenAI API</text><text x="1305" y="847" text-anchor="end" font-size="12" fill="#555555">Spring AI</text>
+  </g>
+
+  <!-- Directional connectors: every arrow tip touches its destination boundary -->
+  <path class="line" d="M278 342H325V336H375"/>
+  <path class="line" d="M278 502H325V351H375"/>
+  <path class="line" d="M514 370V396"/>
+  <path class="line" d="M817 370V396"/>
+  <path class="line" d="M994 338H1080"/>
+  <path class="line" d="M994 493H1080"/>
+  <path class="line" d="M994 632H1080"/>
+  <path class="line" d="M669 694V760"/>
+
+  <text x="720" y="925" text-anchor="middle" font-size="12" fill="#666666">HEILOUS BACKEND · SPRING BOOT + POSTGRESQL/POSTGIS + REDIS</text>
+</svg>

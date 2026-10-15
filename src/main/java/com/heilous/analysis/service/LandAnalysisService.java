@@ -44,6 +44,14 @@ public class LandAnalysisService {
         String zoneCodesStr = land.getLandZones().stream()
                 .map(LandZone::getCode).collect(Collectors.joining(","));
 
+        // AI 프롬프트용 이름 문자열 (코드명 우선, 없으면 코드)
+        String etcNamesStr = land.getLandEtcs().stream()
+                .map(e -> e.getCodeName() != null ? e.getCodeName() : e.getCode())
+                .collect(Collectors.joining(", "));
+        String zoneNamesStr = land.getLandZones().stream()
+                .map(z -> z.getCodeName() != null ? z.getCodeName() : z.getCode())
+                .collect(Collectors.joining(", "));
+
         // ── 항목별 점수 산출 ─────────────────────────────────────
         // 일사량, 경사도, 도로접근성은 AI가 판단 (데이터 없음)
         // → AI 호출 시 함께 받아오므로 아래에서 처리
@@ -60,7 +68,7 @@ public class LandAnalysisService {
 
         // ── AI로 일사량·경사도·도로접근성 점수 + 전체 rationale 생성 ──
         AiScoreResult aiResult = callAiForScores(land, areaScore, regulationScore, zoneScore,
-                etcCodesStr, zoneCodesStr);
+                etcNamesStr, zoneNamesStr);
 
         // ── 부적합 판정 ──────────────────────────────────────────
         boolean disqualified = aiResult.slopeScore == null
@@ -94,10 +102,10 @@ public class LandAnalysisService {
                 .landCategory(land.getLcCodeNm())
                 .area(land.getArea())
                 .desiredArea(land.getDesiredArea())
-                .prposAreaCode(land.getPrposAreaCode())
+                .prposAreaName(land.getPrposAreaName())
                 .zoneConflict(land.getPrposAreaCnflcAtNm())
-                .zoneCodes(zoneCodesStr.isBlank() ? null : zoneCodesStr)
-                .etcCodes(etcCodesStr.isBlank() ? null : etcCodesStr)
+                .zoneNames(zoneNamesStr.isBlank() ? null : zoneNamesStr)
+                .etcNames(etcNamesStr.isBlank() ? null : etcNamesStr)
                 .rationale(aiResult.rationale)
                 .build();
     }
@@ -182,6 +190,9 @@ public class LandAnalysisService {
 
     private String buildAiPrompt(Land land, int areaScore, Integer regulationScore,
                                   Integer zoneScore, String etcCodes, String zoneCodes) {
+        String slopeStr = land.getAverageSlope() != null
+                ? String.format("%.2f", land.getAverageSlope())
+                : "N/A (use regional estimate)";
         return String.format("""
                 You are a land suitability analyst for solar panel installation projects in South Korea.
                 Based on the land information below, evaluate the following 3 criteria and provide a brief one-line rationale for each of the 6 criteria listed.
@@ -197,6 +208,7 @@ public class LandAnalysisService {
                 Zoning Conflict Status: %s
                 District Codes: %s
                 Other Regulation Codes: %s
+                Average Slope: %s degrees
                 
                 [Pre-calculated Scores]
                 Developable Area Score: %d / 10
@@ -234,6 +246,7 @@ public class LandAnalysisService {
                 nullSafe(land.getPrposAreaCnflcAtNm()),
                 zoneCodes.isBlank() ? "none" : zoneCodes,
                 etcCodes.isBlank() ? "none" : etcCodes,
+                slopeStr,
                 areaScore,
                 regulationScore != null ? regulationScore : "disqualified",
                 zoneScore != null ? zoneScore : "disqualified"

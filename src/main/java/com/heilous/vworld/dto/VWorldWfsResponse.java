@@ -21,6 +21,10 @@ public class VWorldWfsResponse {
     public static class Feature {
         @JsonProperty("properties")
         private Properties properties;
+
+        /** [minLon, minLat, maxLon, maxLat] */
+        @JsonProperty("bbox")
+        private double[] bbox;
     }
 
     @Getter

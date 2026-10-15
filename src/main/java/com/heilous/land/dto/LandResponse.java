@@ -16,6 +16,7 @@ public class LandResponse {
     private Double area;
     private String pnu;
     private Long desiredPrice;
+    private Double desiredArea;
     private String transactionType;
     private List<String> landImagePaths;
     private Double x;
@@ -32,6 +33,7 @@ public class LandResponse {
                 .area(land.getArea())
                 .pnu(land.getPnu())
                 .desiredPrice(land.getDesiredPrice())
+                .desiredArea(land.getDesiredArea())
                 .transactionType(land.getTransactionType() != null ? land.getTransactionType().name() : null)
                 .landImagePaths(land.getLandImages().stream().map(img -> img.getImagePath()).toList())
                 .x(land.getX())
