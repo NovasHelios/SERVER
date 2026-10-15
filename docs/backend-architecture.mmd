@@ -1,0 +1,70 @@
+flowchart TB
+    %% Heilous backend architecture — based on the current repository
+    Client["웹 / 모바일 클라이언트"]
+    Ops["운영자"]
+
+    subgraph Runtime["애플리케이션 런타임 · Docker Compose"]
+        App["Spring Boot 3.2 · Java 21\nREST API · JWT / OAuth2 · Validation"]
+        WS["WebSocket · STOMP\n채팅 실시간 전송"]
+    end
+
+    subgraph Domains["도메인 모듈 · 단일 애플리케이션"]
+        Auth["인증 · 사용자\n가입 · 로그인 · 프로필 · 권한"]
+        Land["토지\n등록 · 검색 · 필터 · 이미지"]
+        Analysis["토지 분석\n개발 점수 · 가격 이력"]
+        Deal["관심 · 신청 · 사업자 프로필"]
+        Chat["채팅\n방 · 메시지 · 첨부파일"]
+        AI["AI 보고서"]
+        Admin["관리자\n승인 · 문서"]
+    end
+
+    subgraph Data["데이터 및 파일"]
+        DB[("PostgreSQL 16 + PostGIS\n사용자 · 토지 · 신청 · 채팅 등")]
+        Redis[("Redis 7\n이메일 인증 · 비밀번호 재설정 코드")]
+        Files[("파일 저장소\n현재: 앱 로컬 업로드 경로")]
+    end
+
+    subgraph External["외부 서비스"]
+        OAuth["Google · Kakao · Naver OAuth2"]
+        Mail["SMTP 메일"]
+        Maps["VWorld · Kakao 지도/주소 API"]
+        OpenAI["OpenAI API\nSpring AI"]
+    end
+
+    Client -->|HTTPS · REST| App
+    Client <-->|WebSocket · STOMP| WS
+    Ops -->|HTTPS · 관리자 API| App
+    App --> Auth
+    App --> Land
+    App --> Analysis
+    App --> Deal
+    App --> Chat
+    App --> AI
+    App --> Admin
+    WS --> Chat
+
+    Auth --> DB
+    Auth --> Redis
+    Land --> DB
+    Analysis --> DB
+    Deal --> DB
+    Chat --> DB
+    Admin --> DB
+    Land --> Files
+    Chat --> Files
+    Admin --> Files
+
+    Auth <-->|인증 흐름| OAuth
+    Auth -->|인증 코드 메일| Mail
+    Land <-->|토지·주소 조회| Maps
+    Analysis -->|분석 생성 요청| OpenAI
+    AI -->|보고서 생성 요청| OpenAI
+
+    classDef client fill:#e8f1ff,stroke:#4776b4,color:#10243a
+    classDef app fill:#e8f6ef,stroke:#34845a,color:#102b1b
+    classDef data fill:#fff2d8,stroke:#b8882c,color:#3c2a08
+    classDef external fill:#f2eaff,stroke:#8463aa,color:#281c39
+    class Client,Ops client
+    class App,WS,Auth,Land,Analysis,Deal,Chat,AI,Admin app
+    class DB,Redis,Files data
+    class OAuth,Mail,Maps,OpenAI external
