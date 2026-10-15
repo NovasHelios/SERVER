@@ -25,9 +25,9 @@ public class BusinessProfileService {
     private final UserRepository userRepository;
     private final ImageStorageService imageStorageService;
 
-    // 사업자 프로필 등록/수정 (JSON만)
+    // 사업자 프로필 등록/수정
     @Transactional
-    public BusinessProfileResponse saveProfile(String email, BusinessProfileRequest request) {
+    public BusinessProfileResponse saveProfile(String email, BusinessProfileRequest request, MultipartFile profileImage) {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
@@ -48,12 +48,16 @@ public class BusinessProfileService {
                             request.getBusinessDescription(), request.getActiveRegions(),
                             request.isNationwideActive(), request.isConsultationAvailable(),
                             request.getConsultationStartTime(), request.getConsultationEndTime());
+                    if (profileImage != null && !profileImage.isEmpty()) {
+                        imageStorageService.delete(existing.getProfileImagePath(), "business-profiles");
+                        existing.updateProfileImagePath(imageStorageService.store(profileImage, "business-profiles"));
+                    }
                 },
                 () -> {
                     if (businessProfileRepository.existsByBusinessNumber(request.getBusinessNumber())) {
                         throw new CustomException(GlobalErrorCode.BUSINESS_NUMBER_ALREADY_EXISTS);
                     }
-                    businessProfileRepository.save(BusinessProfile.builder()
+                    BusinessProfile profile = BusinessProfile.builder()
                             .user(user)
                             .companyName(request.getCompanyName())
                             .businessNumber(request.getBusinessNumber())
@@ -67,7 +71,11 @@ public class BusinessProfileService {
                             .consultationAvailable(request.isConsultationAvailable())
                             .consultationStartTime(request.getConsultationStartTime())
                             .consultationEndTime(request.getConsultationEndTime())
-                            .build());
+                            .build();
+                    if (profileImage != null && !profileImage.isEmpty()) {
+                        profile.updateProfileImagePath(imageStorageService.store(profileImage, "business-profiles"));
+                    }
+                    businessProfileRepository.save(profile);
                 }
         );
 

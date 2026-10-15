@@ -44,3 +44,7 @@ src/main/resources/application-secret.yml
 .DS_Store
 
 uploads/
+
+src/main/resources/data/slope.bin
+src/main/resources/data/slope.bin.aux.xml
+src/main/resources/data/slope.hdr

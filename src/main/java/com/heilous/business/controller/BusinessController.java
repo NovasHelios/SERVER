@@ -5,14 +5,16 @@ import com.heilous.business.dto.BusinessProfileResponse;
 import com.heilous.business.service.BusinessProfileService;
 import com.heilous.common.dto.APIResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Tag(name = "Business", description = "사업자 프로필 API")
@@ -26,12 +28,37 @@ public class BusinessController {
     private final BusinessProfileService businessProfileService;
 
     @Operation(summary = "사업자 프로필 등록/수정 — BUSINESS 플랜 사용자만 가능합니다.")
-    @PutMapping("/profile")
+    @PutMapping(value = "/profile", consumes = "multipart/form-data")
     public APIResponse<BusinessProfileResponse> saveProfile(
             @AuthenticationPrincipal String email,
-            @Valid @RequestBody BusinessProfileRequest request
+            @RequestParam("companyName") String companyName,
+            @RequestParam("businessNumber") String businessNumber,
+            @RequestParam(value = "department", required = false) String department,
+            @RequestParam(value = "jobTitle", required = false) String jobTitle,
+            @RequestParam(value = "mainFields", required = false) List<String> mainFields,
+            @RequestParam(value = "mainFieldDescription", required = false) String mainFieldDescription,
+            @RequestParam(value = "businessDescription", required = false) String businessDescription,
+            @RequestParam(value = "activeRegions", required = false) List<String> activeRegions,
+            @RequestParam(value = "nationwideActive", defaultValue = "false") boolean nationwideActive,
+            @RequestParam(value = "consultationAvailable", defaultValue = "false") boolean consultationAvailable,
+            @RequestParam(value = "consultationStartTime", required = false) @DateTimeFormat(pattern = "HH:mm") @Schema(type = "string",format = "time", example = "09:00") LocalTime consultationStartTime,
+            @RequestParam(value = "consultationEndTime", required = false) @DateTimeFormat(pattern = "HH:mm") @Schema(type = "string",format = "time", example = "18:00") LocalTime consultationEndTime,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage
     ) {
-        return APIResponse.ok(businessProfileService.saveProfile(email, request));
+        BusinessProfileRequest request = new BusinessProfileRequest();
+        request.setCompanyName(companyName);
+        request.setBusinessNumber(businessNumber);
+        request.setDepartment(department);
+        request.setJobTitle(jobTitle);
+        request.setMainFields(mainFields);
+        request.setMainFieldDescription(mainFieldDescription);
+        request.setBusinessDescription(businessDescription);
+        request.setActiveRegions(activeRegions);
+        request.setNationwideActive(nationwideActive);
+        request.setConsultationAvailable(consultationAvailable);
+        request.setConsultationStartTime(consultationStartTime);
+        request.setConsultationEndTime(consultationEndTime);
+        return APIResponse.ok(businessProfileService.saveProfile(email, request, profileImage));
     }
 
     @Operation(summary = "사업자 인증 파일 업로드 — 프로필이 먼저 등록된 상태여야 합니다.")

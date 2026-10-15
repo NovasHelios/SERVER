@@ -48,7 +48,8 @@ public class ChatService {
             throw new CustomException(GlobalErrorCode.CHAT_ROOM_ALREADY_EXISTS);
         }
         ChatRoom room = chatRoomRepository.save(
-                ChatRoom.builder().land(land).company(company).owner(land.getOwner()).build());
+                ChatRoom.builder().land(land).company(company).owner(land.getOwner())
+                        .status(ChatRoom.Status.ACCEPTED).build());
         ChatMessage message = null;
         if (initialMessage != null && !initialMessage.isBlank()) {
             message = chatMessageRepository.save(
@@ -94,7 +95,9 @@ public class ChatService {
     @Transactional
     public ChatMessageResponse sendMessage(Long roomId, String email, String content) {
         ChatRoom room = requireParticipant(roomId, email);
-        if (room.getStatus() != ChatRoom.Status.ACCEPTED) throw new CustomException(GlobalErrorCode.CHAT_ROOM_NOT_ACTIVE);
+        if (room.getStatus() == ChatRoom.Status.CLOSED || room.getStatus() == ChatRoom.Status.REJECTED) {
+            throw new CustomException(GlobalErrorCode.CHAT_ROOM_NOT_ACTIVE);
+        }
         User sender = room.getCompany().getEmail().equals(email) ? room.getCompany() : room.getOwner();
         return ChatMessageResponse.from(chatMessageRepository.save(
                 ChatMessage.builder().room(room).sender(sender).content(content.trim()).build()));
@@ -103,7 +106,9 @@ public class ChatService {
     @Transactional
     public ChatMessageResponse sendAttachment(Long roomId, String email, MultipartFile file) {
         ChatRoom room = requireParticipant(roomId, email);
-        if (room.getStatus() != ChatRoom.Status.ACCEPTED) throw new CustomException(GlobalErrorCode.CHAT_ROOM_NOT_ACTIVE);
+        if (room.getStatus() == ChatRoom.Status.CLOSED || room.getStatus() == ChatRoom.Status.REJECTED) {
+            throw new CustomException(GlobalErrorCode.CHAT_ROOM_NOT_ACTIVE);
+        }
         User sender = room.getCompany().getEmail().equals(email) ? room.getCompany() : room.getOwner();
         String attachmentPath = imageStorageService.storeDocument(file, "chat");
         String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : attachmentPath;

@@ -12,10 +12,8 @@ import com.heilous.land.dto.RegionStatsResponse;
 import com.heilous.land.entity.Land;
 import com.heilous.land.entity.LandEtc;
 import com.heilous.land.entity.LandImage;
-import com.heilous.land.entity.LandPrice;
 import com.heilous.land.entity.LandZone;
 import com.heilous.land.repository.LandImageRepository;
-import com.heilous.land.repository.LandPriceRepository;
 import com.heilous.land.repository.LandRepository;
 import com.heilous.land.repository.LandSpecification;
 import com.heilous.land.repository.LandZoneRepository;
@@ -24,7 +22,6 @@ import com.heilous.user.entity.User;
 import com.heilous.user.enums.UserRole;
 import com.heilous.user.repository.UserRepository;
 import com.heilous.vworld.dto.AddressLandResponse;
-import com.heilous.vworld.dto.LandPriceWfsResponse;
 import com.heilous.vworld.dto.VWorldLandResponse;
 import com.heilous.vworld.dto.VWorldWfsResponse;
 import com.heilous.vworld.service.VWorldService;
@@ -48,11 +45,11 @@ public class LandService {
     private final LandImageRepository landImageRepository;
     private final LandZoneRepository landZoneRepository;
     private final LandEtcRepository landEtcRepository;
-    private final LandPriceRepository landPriceRepository;
     private final UserRepository userRepository;
     private final VWorldService vWorldService;
     private final ImageStorageService imageStorageService;
     private final LandCodeService landCodeService;
+    private final SlopeService slopeService;
 
     // 토지 등록
     @Transactional
@@ -137,7 +134,7 @@ public class LandService {
                 .description(request.getDescription())
                 .desiredArea(request.getDesiredArea())
                 .transactionType(request.getTransactionType())
-                .status(Land.LandStatus.PENDING)
+                .status(Land.LandStatus.APPROVED)
                 .x(addressLandResponse.getX())
                 .y(addressLandResponse.getY())
                 .build();
@@ -147,7 +144,6 @@ public class LandService {
         // WFS: 용도지역/지구/기타 조회 및 저장
         if (pnu != null) {
             applyLandUseInfo(land, pnu);
-            applyLandPriceInfo(land, pnu);
         }
 
         // 이미지 저장
@@ -184,10 +180,9 @@ public class LandService {
         Land land = landRepository.findWithImagesById(landId)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
 
-        // zones, etcs, prices는 별도 쿼리로 로딩 (hibernate 1차 캐시로 같은 엔티티에 merge됨)
+        // zones, etcs는 별도 쿼리로 로딩 (hibernate 1차 캐시로 같은 엔티티에 merge됨)
         landRepository.findWithZonesById(landId);
         landRepository.findWithEtcsById(landId);
-        landRepository.findWithPricesById(landId);
 
         return LandDetailResponse.from(land);
     }
@@ -282,46 +277,50 @@ public class LandService {
             VWorldWfsResponse.Feature feature = wfs.getFeatures().get(0);
             VWorldWfsResponse.Properties props = feature.getProperties();
 
+            // bbox 저장 [minLon, minLat, maxLon, maxLat]
+            double[] bbox = feature.getBbox();
+            if (bbox != null && bbox.length == 4) {
+                land.updateBbox(bbox[0], bbox[1], bbox[2], bbox[3]);
+
+                // 경사도 계산 (SlopeService 사용 가능한 경우만)
+                if (slopeService.isAvailable()) {
+                    try {
+                        double slope = slopeService.getAverageSlopeFromBbox(
+                                land.getX(), land.getY(), bbox);
+                        land.updateAverageSlope(Double.isNaN(slope) ? null : slope);
+                    } catch (Exception e) {
+                        log.warn("경사도 계산 실패 (pnu={}): {}", pnu, e.getMessage());
+                    }
+                }
+            }
+
             if (props == null || props.getPrposAreaDstrcCodeList() == null) return;
 
-            String[] codes   = props.getPrposAreaDstrcCodeList().split(",");
-            String[] cnflcs  = props.getCnflcAtList() != null
-                    ? props.getCnflcAtList().split(",") : new String[0];
-            String[] cnflcNms = props.getCnflcAtNmList() != null
-                    ? props.getCnflcAtNmList().split(",") : new String[0];
+            String[] codes    = props.getPrposAreaDstrcCodeList().split(",");
+            String[] cnflcs   = props.getCnflcAtList() != null ? props.getCnflcAtList().split(",") : new String[0];
+            String[] cnflcNms = props.getCnflcAtNmList() != null ? props.getCnflcAtNmList().split(",") : new String[0];
 
             String prposAreaCode = null, prposAreaCnflcAt = null, prposAreaCnflcAtNm = null;
-
             List<LandZone> zones = new ArrayList<>();
             List<LandEtc> etcs  = new ArrayList<>();
 
             for (int i = 0; i < codes.length; i++) {
-                String code     = codes[i].trim();
-                String cnflc    = i < cnflcs.length  ? cnflcs[i].trim()   : null;
-                String cnflcNm  = i < cnflcNms.length ? cnflcNms[i].trim() : null;
+                String code    = codes[i].trim();
+                String cnflc   = i < cnflcs.length   ? cnflcs[i].trim()   : null;
+                String cnflcNm = i < cnflcNms.length  ? cnflcNms[i].trim() : null;
 
-                if (isZoneCode(code)) {         // UQA~UQE: 용도지역
+                if (isZoneCode(code)) {
                     if (prposAreaCode == null) {
                         prposAreaCode = code;
                         prposAreaCnflcAt = cnflc;
                         prposAreaCnflcAtNm = cnflcNm;
                     }
-                } else if (isDistrictCode(code)) { // UQF~UQP: 용도지구
-                    zones.add(LandZone.builder()
-                            .land(land)
-                            .code(code)
-                            .codeName(landCodeService.getName(code))
-                            .cnflcAt(cnflc)
-                            .cnflcAtNm(cnflcNm)
-                            .build());
-                } else {                           // 나머지: 기타
-                    etcs.add(LandEtc.builder()
-                            .land(land)
-                            .code(code)
-                            .codeName(landCodeService.getName(code))
-                            .cnflcAt(cnflc)
-                            .cnflcAtNm(cnflcNm)
-                            .build());
+                } else if (isDistrictCode(code)) {
+                    zones.add(LandZone.builder().land(land).code(code)
+                            .codeName(landCodeService.getName(code)).cnflcAt(cnflc).cnflcAtNm(cnflcNm).build());
+                } else {
+                    etcs.add(LandEtc.builder().land(land).code(code)
+                            .codeName(landCodeService.getName(code)).cnflcAt(cnflc).cnflcAtNm(cnflcNm).build());
                 }
             }
 
@@ -348,40 +347,6 @@ public class LandService {
         if (code == null || code.length() < 3) return false;
         String prefix = code.substring(0, 3).toUpperCase();
         return prefix.compareTo("UQF") >= 0 && prefix.compareTo("UQQ") < 0;
-    }
-
-    /**
-     * 공시지가 WFS 결과를 파싱해 land_prices 테이블에 저장하고,
-     * road_side_code를 lands 테이블에 저장
-     */
-    private void applyLandPriceInfo(Land land, String pnu) {
-        try {
-            LandPriceWfsResponse wfs = vWorldService.getLandPriceByPnu(pnu);
-            if (wfs == null || wfs.getFeatures() == null || wfs.getFeatures().isEmpty()) return;
-
-            LandPriceWfsResponse.Properties props = wfs.getFeatures().get(0).getProperties();
-            if (props == null) return;
-
-            // road_side_code → lands 테이블
-            land.updateRoadSideCode(props.getRoadSideCode());
-
-            // 공시지가 → land_prices 테이블
-            LandPrice price = LandPrice.builder()
-                    .land(land)
-                    .stdrYear(props.getPblntfPclndStdrYear())
-                    .stdrMt(props.getPblntfPclndStdrMt())
-                    .pblntfPclnd(props.getPblntfPclnd())
-                    .pstyr1PblntfPclnd(props.getPstyr1PblntfPclnd())
-                    .pstyr2PblntfPclnd(props.getPstyr2PblntfPclnd())
-                    .pstyr3PblntfPclnd(props.getPstyr3PblntfPclnd())
-                    .pstyr4PblntfPclnd(props.getPstyr4PblntfPclnd())
-                    .build();
-
-            landPriceRepository.save(price);
-
-        } catch (Exception e) {
-            log.warn("공시지가 정보 저장 실패 (pnu={}): {}", pnu, e.getMessage());
-        }
     }
 
     // 토지 수정
@@ -464,8 +429,6 @@ public class LandService {
             landZoneRepository.deleteByLandId(land.getId());
             landEtcRepository.deleteByLandId(land.getId());
             applyLandUseInfo(land, pnu);
-            landPriceRepository.deleteByLandId(land.getId());
-            applyLandPriceInfo(land, pnu);
         }
     }
 

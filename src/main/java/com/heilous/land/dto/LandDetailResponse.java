@@ -2,7 +2,6 @@ package com.heilous.land.dto;
 
 import com.heilous.land.entity.Land;
 import com.heilous.land.entity.LandEtc;
-import com.heilous.land.entity.LandPrice;
 import com.heilous.land.entity.LandZone;
 import lombok.Builder;
 import lombok.Getter;
@@ -48,22 +47,19 @@ public class LandDetailResponse {
     private String prposAreaCnflcAt;
     private String prposAreaCnflcAtNm;
 
-    // 도로접면
-    private String roadSideCode;
-
     // 용도지구
     private List<ZoneItem> landZones;
 
     // 기타
     private List<EtcItem> landEtcs;
 
-    // 공시지가
-    private List<PriceItem> landPrices;
-
     // 이미지/문서
     private List<String> landImagePaths;
     private String documentPath;
     private LocalDateTime createdAt;
+
+    // 경사도 (평균)
+    private Double averageSlope;
 
     @Getter
     @Builder
@@ -95,28 +91,6 @@ public class LandDetailResponse {
         }
     }
 
-    @Getter
-    @Builder
-    public static class PriceItem {
-        private String stdrYear;
-        private String stdrMt;
-        private Long pblntfPclnd;
-        private Long pstyr1PblntfPclnd;
-        private Long pstyr2PblntfPclnd;
-        private Long pstyr3PblntfPclnd;
-        private Long pstyr4PblntfPclnd;
-
-        public static PriceItem from(LandPrice p) {
-            return PriceItem.builder()
-                    .stdrYear(p.getStdrYear()).stdrMt(p.getStdrMt())
-                    .pblntfPclnd(p.getPblntfPclnd())
-                    .pstyr1PblntfPclnd(p.getPstyr1PblntfPclnd())
-                    .pstyr2PblntfPclnd(p.getPstyr2PblntfPclnd())
-                    .pstyr3PblntfPclnd(p.getPstyr3PblntfPclnd())
-                    .pstyr4PblntfPclnd(p.getPstyr4PblntfPclnd()).build();
-        }
-    }
-
     public static LandDetailResponse from(Land land) {
         return LandDetailResponse.builder()
                 .id(land.getId())
@@ -144,13 +118,12 @@ public class LandDetailResponse {
                 .prposAreaName(land.getPrposAreaName())
                 .prposAreaCnflcAt(land.getPrposAreaCnflcAt())
                 .prposAreaCnflcAtNm(land.getPrposAreaCnflcAtNm())
-                .roadSideCode(land.getRoadSideCode())
                 .landZones(land.getLandZones().stream().map(ZoneItem::from).toList())
                 .landEtcs(land.getLandEtcs().stream().map(EtcItem::from).toList())
-                .landPrices(land.getLandPrices().stream().map(PriceItem::from).toList())
                 .landImagePaths(land.getLandImages().stream().map(img -> img.getImagePath()).toList())
                 .documentPath(land.getDocumentPath())
                 .createdAt(land.getCreatedAt())
+                .averageSlope(land.getAverageSlope())
                 .build();
     }
 }
