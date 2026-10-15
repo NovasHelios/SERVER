@@ -510,40 +510,6 @@ public class LandService {
     }
 
     // 토지 이미지 추가/수정
-    @Transactional
-    public void uploadLandImage(Long landId, Long imageId, MultipartFile image, String email) {
-
-        Land land = landRepository.findById(landId)
-                .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
-
-        if (!land.getOwner().getEmail().equals(email)) {
-            throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
-        }
-
-        String filename = imageStorageService.store(image, "lands");
-
-        if (imageId != null) {
-            // 수정: 기존 이미지 교체
-            LandImage existing = landImageRepository.findById(imageId)
-                    .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_IMAGE_NOT_FOUND));
-
-            imageStorageService.delete(existing.getImagePath(), "lands");
-            land.removeImage(existing);
-            landImageRepository.delete(existing);
-        } else {
-            // 추가: 최대 5장 초과 여부 확인
-            if (land.getLandImages().size() >= 5) {
-                throw new CustomException(GlobalErrorCode.LAND_IMAGE_MAX_EXCEEDED);
-            }
-        }
-
-        LandImage newImage = LandImage.builder()
-                .land(land)
-                .imagePath(filename)
-                .build();
-        landImageRepository.save(newImage);
-    }
-
     // 증명서 경로 조회 (어드민용)
     @Transactional(readOnly = true)
     public String getDocumentPath(Long landId, String email) {

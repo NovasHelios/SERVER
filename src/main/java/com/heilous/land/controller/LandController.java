@@ -193,21 +193,17 @@ public class LandController {
     }
 
     @Operation(
-            summary = "토지 이미지 추가/수정",
-            description = "토지 소유자(USER)가 이미지를 추가하거나 기존 이미지를 교체합니다.\n\n"
-                    + "- imageId 없이 요청: 새 이미지 추가 (최대 5장 초과 시 오류)\n"
-                    + "- imageId 포함 요청: 해당 이미지를 새 이미지로 교체 (기존 파일 삭제됨)\n\n"
-                    + "허용 형식: jpg, png, webp, gif"
+            summary = "토지 이미지 재등록",
+            description = "기존 이미지를 전부 삭제하고 새 이미지 3~5장으로 전면 교체합니다."
     )
     @SecurityRequirement(name = "bearerAuth")
     @PatchMapping(value = "/{landId}/image", consumes = "multipart/form-data")
-    public APIResponse<String> uploadLandImage(
+    public APIResponse<String> replaceLandImageLegacy(
             @PathVariable Long landId,
-            @RequestParam(value = "imageId", required = false) Long imageId,
-            @RequestPart("image") MultipartFile image,
+            @RequestPart("images") List<MultipartFile> images,
             @AuthenticationPrincipal String email
     ) {
-        landService.uploadLandImage(landId, imageId, image, email);
-        return APIResponse.ok("토지 이미지 업로드 완료");
+        landService.replaceLandImages(landId, images, email);
+        return APIResponse.ok("토지 이미지 재등록 완료");
     }
 }
