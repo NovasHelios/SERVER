@@ -13,6 +13,7 @@ public class LandResponse {
 
     private Long id;
     private String address;
+    private String postalCode;
     private Double area;
     private String pnu;
     private Long desiredPrice;
@@ -30,6 +31,7 @@ public class LandResponse {
         return LandResponse.builder()
                 .id(land.getId())
                 .address(land.getAddress())
+                .postalCode(land.getPostalCode())
                 .area(land.getArea())
                 .pnu(land.getPnu())
                 .desiredPrice(land.getDesiredPrice())

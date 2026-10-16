@@ -18,6 +18,7 @@ public class LandDetailResponse {
 
     // 기본 토지 정보
     private String address;
+    private String postalCode;
     private Double area;
     private String lcCode;
     private String lcCodeNm;
@@ -96,6 +97,7 @@ public class LandDetailResponse {
                 .id(land.getId())
                 .ownerEmail(land.getOwner().getEmail())
                 .address(land.getAddress())
+                .postalCode(land.getPostalCode())
                 .area(land.getArea())
                 .lcCode(land.getLcCode())
                 .lcCodeNm(land.getLcCodeNm())

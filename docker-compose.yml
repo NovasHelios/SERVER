@@ -40,8 +40,8 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/heilous
       REDIS_HOST: redis
     volumes:
-      - /home/ubuntu/uploads:/app/uploads
-      - /home/ubuntu/SERVER/src/main/resources/data:/app/data:ro
+      - ./uploads:/app/uploads
+      - ./src/main/resources/data:/app/data:ro
     depends_on:
       postgres:
         condition: service_healthy

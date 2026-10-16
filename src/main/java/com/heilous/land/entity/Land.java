@@ -33,6 +33,8 @@ public class Land extends BaseEntity {
     @Column(nullable = false)
     private String address;
 
+    private String postalCode;
+
     private Double area;
     private String lcCode;
     private String lcCodeNm;
