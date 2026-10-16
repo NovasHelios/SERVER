@@ -45,6 +45,9 @@ src/main/resources/application-secret.yml
 
 uploads/
 
+# Local PostgreSQL data created by docker-compose bind mount
+/data/postgres/
+
 src/main/resources/data/slope.bin
 src/main/resources/data/slope.bin.aux.xml
 src/main/resources/data/slope.hdr
