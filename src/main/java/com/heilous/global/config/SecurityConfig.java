@@ -56,7 +56,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/api/vworld/**",
-                                "/error"
+                                "/error",
+                                "/api/users/plans"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/lands/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/lands", "/api/lands/**").permitAll()
