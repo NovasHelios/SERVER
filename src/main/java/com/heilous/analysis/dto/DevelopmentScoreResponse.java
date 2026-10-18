@@ -54,6 +54,9 @@ public class DevelopmentScoreResponse {
     @Schema(description = "희망 면적(㎡) — 사용자 입력값")
     private Double desiredArea;
 
+    @Schema(description = "연간 일평균 일사량 (kWh/m²/day) — NASA POWER API")
+    private Double averageSolarIrradiance;
+
     @Schema(description = "용도지역 이름")
     private String prposAreaName;
 

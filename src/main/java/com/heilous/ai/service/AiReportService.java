@@ -1,5 +1,6 @@
 package com.heilous.ai.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.heilous.ai.dto.AiReportResponse;
 import com.heilous.ai.dto.SolarCriterionReport;
 import com.heilous.ai.dto.SolarSuitabilityReportResponse;
@@ -11,6 +12,7 @@ import com.heilous.common.exception.GlobalErrorCode;
 import com.heilous.land.entity.Land;
 import com.heilous.land.repository.LandRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AiReportService {
@@ -27,31 +30,40 @@ public class AiReportService {
     private final ChatClient chatClient;
     private final LandRepository landRepository;
     private final LandAnalysisService landAnalysisService;
+    private final ObjectMapper objectMapper;
 
-    /**
-     * 토지 정보를 기반으로 AI 분석 보고서를 생성합니다.
-     * temperature=0 으로 설정되어 동일한 입력 → 동일한 출력이 보장됩니다.
-     */
-    @Transactional(readOnly = true)
+    @Transactional
     public AiReportResponse generateReport(Long landId) {
+        Land land = getLand(landId);
 
-        Land land = landRepository.findById(landId)
-                .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
+        // 캐시 히트
+        if (land.getAiReportCache() != null) {
+            return new AiReportResponse(land.getId(), land.getAddress(), land.getAiReportCache());
+        }
 
-        String prompt = buildPrompt(land);
+        String report = chatClient.prompt().user(buildPrompt(land)).call().content();
+        String result = report == null ? "" : report.trim();
 
-        String report = chatClient.prompt()
-                .user(prompt)
-                .call()
-                .content();
-
-        return new AiReportResponse(land.getId(), land.getAddress(), report);
+        land.updateAiReportCache(result);
+        return new AiReportResponse(land.getId(), land.getAddress(), result);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public SolarSuitabilityReportResponse generateSolarSuitabilityReport(Long landId) {
         Land land = getLand(landId);
+
+        // 캐시 히트
+        if (land.getSolarSuitabilityCache() != null) {
+            try {
+                return objectMapper.readValue(land.getSolarSuitabilityCache(), SolarSuitabilityReportResponse.class);
+            } catch (Exception e) {
+                log.warn("태양광 적합도 캐시 역직렬화 실패, 재생성: {}", e.getMessage());
+            }
+        }
+
+        // 개발가능성 분석 (캐시 우선 사용)
         DevelopmentScoreResponse scores = landAnalysisService.analyzeDevelopment(landId);
+
         List<Criterion> criteria = List.of(
                 new Criterion("일사량", scores.getSunlightScore(), 25),
                 new Criterion("경사도", scores.getSlopeScore(), 20),
@@ -59,8 +71,10 @@ public class AiReportService {
                 new Criterion("도로 접근성", scores.getRoadScore(), 10),
                 new Criterion("토지이용규제", scores.getRegulationScore(), 20),
                 new Criterion("용도지역·용도지구", scores.getZoneScore(), 15));
+
         String response = chatClient.prompt().user(buildCriteriaPrompt(land, scores, criteria)).call().content();
         Map<String, String> explanations = parseKeyValues(response);
+
         List<SolarCriterionReport> reports = new ArrayList<>();
         for (int i = 0; i < criteria.size(); i++) {
             Criterion c = criteria.get(i);
@@ -70,13 +84,35 @@ public class AiReportService {
             }
             reports.add(new SolarCriterionReport(c.name, c.score, c.maxScore, explanation));
         }
-        return new SolarSuitabilityReportResponse(land.getId(), land.getAddress(), reports);
+
+        SolarSuitabilityReportResponse result = new SolarSuitabilityReportResponse(land.getId(), land.getAddress(), reports);
+
+        // 캐시 저장
+        try {
+            land.updateSolarSuitabilityCache(objectMapper.writeValueAsString(result));
+        } catch (Exception e) {
+            log.warn("태양광 적합도 캐시 저장 실패: {}", e.getMessage());
+        }
+
+        return result;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public SolarSummaryReportResponse generateSolarSummaryReport(Long landId) {
         Land land = getLand(landId);
+
+        // 캐시 히트
+        if (land.getSolarSummaryCache() != null) {
+            try {
+                return objectMapper.readValue(land.getSolarSummaryCache(), SolarSummaryReportResponse.class);
+            } catch (Exception e) {
+                log.warn("태양광 요약 캐시 역직렬화 실패, 재생성: {}", e.getMessage());
+            }
+        }
+
+        // 개발가능성 분석 (캐시 우선 사용)
         DevelopmentScoreResponse s = landAnalysisService.analyzeDevelopment(landId);
+
         String prompt = """
                 당신은 한국 토지의 태양광 설치 후보 적합성을 설명하는 분석가입니다.
                 제공한 토지 상세정보와 적합도 결과만 근거로 한국어 6~7문장의 종합 보고서를 작성하세요.
@@ -85,34 +121,43 @@ public class AiReportService {
                 부적합이면 그 사유를 분명히 설명하고 가능성을 과장하지 마세요. 제목이나 목록 없이 문단만 반환하세요.
 
                 [토지 상세정보]
-                주소: %s
-                지역: %s %s %s
-                지목/면적: %s / %s㎡ (희망 면적: %s㎡)
+                주소: %s / 지역: %s %s %s / 지목/면적: %s / %s㎡ (희망 면적: %s㎡)
                 대장 구분/공유인수: %s / %s
                 희망가격/거래유형: %s / %s
                 소유자 설명: %s
                 용도지역: %s (%s), 저촉여부: %s
-                용도지구: %s
-                기타 규제: %s
+                용도지구: %s / 기타 규제: %s
                 [적합도 결과]
                 일사량 %s/25, 경사도 %s/20, 개발 가능 면적 %s/10, 도로 접근성 %s/10,
                 토지이용규제 %s/20, 용도지역·용도지구 %s/15
                 총점: %s/100, 등급: %s, 부적합: %s
                 항목별 산정 근거: %s
-                """.formatted(nullSafe(land.getAddress()), nullSafe(land.getRegionSido()),
-                nullSafe(land.getRegionSigungu()), nullSafe(land.getRegionEupmyeondong()),
+                """.formatted(nullSafe(land.getAddress()),
+                nullSafe(land.getRegionSido()), nullSafe(land.getRegionSigungu()), nullSafe(land.getRegionEupmyeondong()),
                 nullSafe(land.getLcCodeNm()), value(land.getArea()), value(land.getDesiredArea()),
                 nullSafe(land.getRegstrSeCodeNm()), nullSafe(land.getCnrsPsnCo()),
                 land.getDesiredPrice() == null ? "미제공" : String.format("%,d원", land.getDesiredPrice()),
-                transactionTypeKo(land), nullSafe(land.getDescription()), nullSafe(land.getPrposAreaName()),
-                nullSafe(land.getPrposAreaCode()), nullSafe(land.getPrposAreaCnflcAtNm()),
-                joinZones(land), joinEtcs(land), scoreText(s.getSunlightScore()), scoreText(s.getSlopeScore()),
-                scoreText(s.getAreaScore()), scoreText(s.getRoadScore()), scoreText(s.getRegulationScore()),
-                scoreText(s.getZoneScore()), scoreText(s.getTotalScore()), nullSafe(s.getGrade()),
-                s.isDisqualified(), nullSafe(s.getRationale()));
+                transactionTypeKo(land), nullSafe(land.getDescription()),
+                nullSafe(land.getPrposAreaName()), nullSafe(land.getPrposAreaCode()), nullSafe(land.getPrposAreaCnflcAtNm()),
+                joinZones(land), joinEtcs(land),
+                scoreText(s.getSunlightScore()), scoreText(s.getSlopeScore()), scoreText(s.getAreaScore()),
+                scoreText(s.getRoadScore()), scoreText(s.getRegulationScore()), scoreText(s.getZoneScore()),
+                scoreText(s.getTotalScore()), nullSafe(s.getGrade()), s.isDisqualified(), nullSafe(s.getRationale()));
+
         String report = chatClient.prompt().user(prompt).call().content();
-        return new SolarSummaryReportResponse(land.getId(), land.getAddress(), s.getTotalScore(), s.getGrade(),
-                s.isDisqualified(), report == null ? "" : report.trim());
+        String reportText = report == null ? "" : report.trim();
+
+        SolarSummaryReportResponse result = new SolarSummaryReportResponse(
+                land.getId(), land.getAddress(), s.getTotalScore(), s.getGrade(), s.isDisqualified(), reportText);
+
+        // 캐시 저장
+        try {
+            land.updateSolarSummaryCache(objectMapper.writeValueAsString(result));
+        } catch (Exception e) {
+            log.warn("태양광 요약 캐시 저장 실패: {}", e.getMessage());
+        }
+
+        return result;
     }
 
     private String buildCriteriaPrompt(Land land, DevelopmentScoreResponse scores, List<Criterion> criteria) {
@@ -137,6 +182,38 @@ public class AiReportService {
         return sb.toString();
     }
 
+    private String buildPrompt(Land land) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("당신은 토지 투자 전문 분석가입니다.\n아래 토지 정보를 바탕으로 투자 가치 분석 보고서를 작성해주세요.\n\n");
+        sb.append("## 토지 기본 정보\n");
+        sb.append("- 주소: ").append(land.getAddress()).append("\n");
+        sb.append("- 지역: ").append(nullSafe(land.getRegionSido())).append(" ").append(nullSafe(land.getRegionSigungu())).append(" ").append(nullSafe(land.getRegionEupmyeondong())).append("\n");
+        sb.append("- 면적: ").append(land.getArea() != null ? land.getArea() + "㎡" : "미제공").append("\n");
+        sb.append("- 지목: ").append(nullSafe(land.getLcCodeNm())).append("\n");
+        sb.append("- 대장구분: ").append(nullSafe(land.getRegstrSeCodeNm())).append("\n");
+        sb.append("- 공유인수: ").append(nullSafe(land.getCnrsPsnCo())).append("명\n");
+        sb.append("\n## 거래 정보\n");
+        sb.append("- 거래유형: ").append(transactionTypeKo(land)).append("\n");
+        sb.append("- 희망가격: ").append(land.getDesiredPrice() != null ? String.format("%,d원", land.getDesiredPrice()) : "미제공").append("\n");
+        if (land.getDescription() != null && !land.getDescription().isBlank()) {
+            sb.append("\n## 소유자 설명\n").append(land.getDescription()).append("\n");
+        }
+        if (land.getPrposAreaCnflcAtNm() != null && !land.getPrposAreaCnflcAtNm().isBlank()) {
+            sb.append("\n## 용도지역 정보\n- 용도저촉여부: ").append(land.getPrposAreaCnflcAtNm()).append("\n");
+        }
+        if (!land.getLandZones().isEmpty()) {
+            sb.append("\n## 용도지역·지구 목록\n");
+            land.getLandZones().forEach(z -> sb.append("- ").append(z.toString()).append("\n"));
+        }
+        if (!land.getLandEtcs().isEmpty()) {
+            sb.append("\n## 기타 규제 사항\n");
+            land.getLandEtcs().forEach(e -> sb.append("- ").append(e.toString()).append("\n"));
+        }
+        sb.append("\n## 작성 지침\n1. 투자 가치 요약 (3줄 이내)\n2. 장점 (3가지)\n3. 리스크 요인 (2~3가지)\n4. 종합 의견\n");
+        sb.append("\n수치와 사실에 기반하여 객관적으로 작성하세요. 마크다운 형식으로 작성해주세요.\n");
+        return sb.toString();
+    }
+
     private Land getLand(Long landId) {
         return landRepository.findById(landId)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
@@ -145,93 +222,32 @@ public class AiReportService {
     private Map<String, String> parseKeyValues(String response) {
         Map<String, String> result = new HashMap<>();
         if (response != null) for (String line : response.split("\\R")) {
-            int separator = line.indexOf(':');
-            if (separator > 0) result.put(line.substring(0, separator).trim(), line.substring(separator + 1).trim());
+            int sep = line.indexOf(':');
+            if (sep > 0) result.put(line.substring(0, sep).trim(), line.substring(sep + 1).trim());
         }
         return result;
     }
 
     private String joinZones(Land land) {
-        return land.getLandZones().isEmpty() ? "미제공" : land.getLandZones().stream()
-                .map(Object::toString).reduce((a, b) -> a + ", " + b).orElse("미제공");
+        return land.getLandZones().isEmpty() ? "미제공" :
+                land.getLandZones().stream().map(z -> z.getCodeName() != null ? z.getCodeName() : z.getCode())
+                        .reduce((a, b) -> a + ", " + b).orElse("미제공");
     }
+
     private String joinEtcs(Land land) {
-        return land.getLandEtcs().isEmpty() ? "미제공" : land.getLandEtcs().stream()
-                .map(Object::toString).reduce((a, b) -> a + ", " + b).orElse("미제공");
+        return land.getLandEtcs().isEmpty() ? "미제공" :
+                land.getLandEtcs().stream().map(e -> e.getCodeName() != null ? e.getCodeName() : e.getCode())
+                        .reduce((a, b) -> a + ", " + b).orElse("미제공");
     }
-    private String value(Double value) { return value == null ? "미제공" : value.toString(); }
+
+    private String value(Double v) { return v == null ? "미제공" : v.toString(); }
     private String scoreText(Integer score) { return score == null ? "부적합/미산정" : score.toString(); }
     private record Criterion(String name, Integer score, int maxScore) {}
-
-    /**
-     * 토지 정보를 구조화된 프롬프트로 변환합니다.
-     * 동일한 토지에 대해 항상 동일한 프롬프트가 생성되어 일관된 답변을 보장합니다.
-     */
-    private String buildPrompt(Land land) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("당신은 토지 투자 전문 분석가입니다.\n");
-        sb.append("아래 토지 정보를 바탕으로 투자 가치 분석 보고서를 작성해주세요.\n\n");
-
-        sb.append("## 토지 기본 정보\n");
-        sb.append("- 주소: ").append(land.getAddress()).append("\n");
-        sb.append("- 지역: ").append(nullSafe(land.getRegionSido()))
-          .append(" ").append(nullSafe(land.getRegionSigungu()))
-          .append(" ").append(nullSafe(land.getRegionEupmyeondong())).append("\n");
-        sb.append("- 면적: ").append(land.getArea() != null ? land.getArea() + "㎡" : "미제공").append("\n");
-        sb.append("- 지목: ").append(nullSafe(land.getLcCodeNm())).append("\n");
-        sb.append("- 대장구분: ").append(nullSafe(land.getRegstrSeCodeNm())).append("\n");
-        sb.append("- 공유인수: ").append(nullSafe(land.getCnrsPsnCo())).append("명\n");
-
-        sb.append("\n## 거래 정보\n");
-        sb.append("- 거래유형: ").append(transactionTypeKo(land)).append("\n");
-        sb.append("- 희망가격: ").append(land.getDesiredPrice() != null
-                ? String.format("%,d원", land.getDesiredPrice()) : "미제공").append("\n");
-
-        if (land.getDescription() != null && !land.getDescription().isBlank()) {
-            sb.append("\n## 소유자 설명\n");
-            sb.append(land.getDescription()).append("\n");
-        }
-
-        if (land.getPrposAreaCnflcAtNm() != null && !land.getPrposAreaCnflcAtNm().isBlank()) {
-            sb.append("\n## 용도지역 정보\n");
-            sb.append("- 용도저촉여부: ").append(land.getPrposAreaCnflcAtNm()).append("\n");
-        }
-
-        if (!land.getLandZones().isEmpty()) {
-            sb.append("\n## 용도지역·지구 목록\n");
-            land.getLandZones().forEach(z ->
-                sb.append("- ").append(z.toString()).append("\n")
-            );
-        }
-
-        if (!land.getLandEtcs().isEmpty()) {
-            sb.append("\n## 기타 규제 사항\n");
-            land.getLandEtcs().forEach(e ->
-                sb.append("- ").append(e.toString()).append("\n")
-            );
-        }
-
-        sb.append("\n## 작성 지침\n");
-        sb.append("1. 투자 가치 요약 (3줄 이내)\n");
-        sb.append("2. 장점 (3가지)\n");
-        sb.append("3. 리스크 요인 (2~3가지)\n");
-        sb.append("4. 종합 의견\n");
-        sb.append("\n수치와 사실에 기반하여 객관적으로 작성하세요. 마크다운 형식으로 작성해주세요.\n");
-
-        return sb.toString();
-    }
-
-    private String nullSafe(String value) {
-        return value != null ? value : "미제공";
-    }
-
+    private String nullSafe(String v) { return v != null ? v : "미제공"; }
     private String transactionTypeKo(Land land) {
         if (land.getTransactionType() == null) return "미제공";
         return switch (land.getTransactionType()) {
-            case SALE     -> "매매";
-            case LEASE    -> "임대";
-            case BUSINESS_HOPE -> "사업제안";
+            case SALE -> "매매"; case LEASE -> "임대"; case BUSINESS_HOPE -> "사업제안";
         };
     }
 }

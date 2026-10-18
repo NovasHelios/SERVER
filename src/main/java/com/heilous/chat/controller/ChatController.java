@@ -24,10 +24,23 @@ public class ChatController {
     private final ChatService chatService;
     private final SimpMessagingTemplate messagingTemplate;
     @Operation(
-            summary = "채팅방 생성",
-            description = "COMPANY 사용자가 특정 토지에 대해 채팅 상담을 요청합니다. landId와 첫 메시지를 함께 전송하면 채팅방이 생성되며 토지 소유자에게 요청이 전달됩니다."
+            summary = "채팅방 생성 (토지 기반)",
+            description = "BUSINESS 사용자가 특정 토지에 대해 채팅 상담을 요청합니다."
     )
     @PostMapping public APIResponse<ChatRoomResponse> create(@Valid @RequestBody CreateChatRoomRequest request, @AuthenticationPrincipal String email) { return APIResponse.ok(chatService.createRoom(request.getLandId(), request.getInitialMessage(), email)); }
+
+    @Operation(
+            summary = "채팅방 생성 (1:1 직접)",
+            description = "로그인한 유저가 BUSINESS 유저에게 토지 없이 직접 채팅을 시작합니다. businessUserId는 상대 비즈니스 유저의 userId입니다."
+    )
+    @PostMapping("/direct")
+    public APIResponse<ChatRoomResponse> createDirect(
+            @RequestParam Long businessUserId,
+            @RequestParam(required = false) String initialMessage,
+            @AuthenticationPrincipal String email
+    ) {
+        return APIResponse.ok(chatService.createDirectRoom(businessUserId, initialMessage, email));
+    }
     @Operation(
             summary = "내 채팅방 목록 조회",
             description = "로그인한 사용자가 참여 중인 모든 채팅방 목록을 조회합니다. USER는 본인 토지에 대한 채팅방, COMPANY는 본인이 요청한 채팅방이 반환됩니다."

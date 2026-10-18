@@ -5,6 +5,7 @@ import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
 import com.heilous.vworld.dto.AddressLandResponse;
 import com.heilous.vworld.dto.KakaoAddressResponse;
+import com.heilous.vworld.dto.NasaPowerResponse;
 import com.heilous.vworld.dto.PossessionAttrResponse;
 import com.heilous.vworld.dto.VWorldLandRequest;
 import com.heilous.vworld.dto.VWorldLandResponse;
@@ -38,6 +39,7 @@ public class VWorldService {
     private static final String API_URL            = "http://api.vworld.kr/ned/data/ladfrlList";
     private static final String WFS_URL            = "http://api.vworld.kr/ned/wfs/getLandUseWFS";
     private static final String POSSESSION_URL     = "https://api.vworld.kr/ned/data/getPossessionAttr";
+    private static final String NASA_POWER_URL     = "https://power.larc.nasa.gov/api/temporal/daily/point";
 
     public VWorldLandResponse getLandInfo(VWorldLandRequest request) {
         try {
@@ -114,6 +116,40 @@ public class VWorldService {
             return objectMapper.readValue(call(urlString, 5_000, 10_000), VWorldWfsResponse.class);
         } catch (Exception e) {
             log.error("VWorld WFS API 호출 실패", e);
+            return null;
+        }
+    }
+
+    /**
+     * NASA POWER API로 연간 평균 일사량(kWh/m²/day) 조회
+     * latitude = y, longitude = x (토지 좌표 기준)
+     */
+    public Double getSolarIrradiance(double x, double y) {
+        try {
+            // 최근 1년치 조회
+            String startDate = String.valueOf(java.time.LocalDate.now().minusYears(1).getYear()) + "0101";
+            String endDate   = String.valueOf(java.time.LocalDate.now().minusYears(1).getYear()) + "1231";
+
+            String urlString = UriComponentsBuilder.fromHttpUrl(NASA_POWER_URL)
+                    .queryParam("start", startDate)
+                    .queryParam("end", endDate)
+                    .queryParam("latitude", y)
+                    .queryParam("longitude", x)
+                    .queryParam("community", "re")
+                    .queryParam("parameters", "ALLSKY_SFC_SW_DWN")
+                    .queryParam("format", "json")
+                    .queryParam("units", "metric")
+                    .queryParam("header", "true")
+                    .queryParam("time-standard", "lst")
+                    .build().toUriString();
+
+            NasaPowerResponse response = objectMapper.readValue(
+                    call(urlString, 5_000, 15_000), NasaPowerResponse.class);
+
+            return response.getAverageSolarIrradiance();
+
+        } catch (Exception e) {
+            log.error("NASA POWER API 호출 실패: {}", e.getMessage());
             return null;
         }
     }

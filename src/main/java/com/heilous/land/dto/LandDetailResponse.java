@@ -61,6 +61,9 @@ public class LandDetailResponse {
     // 경사도 (평균)
     private Double averageSlope;
 
+    // 일사량 (연간 일평균, kWh/m²/day)
+    private Double averageSolarIrradiance;
+
     @Getter
     @Builder
     public static class ZoneItem {
@@ -124,6 +127,7 @@ public class LandDetailResponse {
                 .documentPath(land.getDocumentPath())
                 .createdAt(land.getCreatedAt())
                 .averageSlope(land.getAverageSlope())
+                .averageSolarIrradiance(land.getAverageSolarIrradiance())
                 .build();
     }
 }

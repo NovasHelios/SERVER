@@ -61,6 +61,35 @@ public class ChatService {
         return toRoomResponse(room, email, message);
     }
 
+    /** 토지 없이 비즈니스 유저에게 직접 채팅 요청 */
+    @Transactional
+    public ChatRoomResponse createDirectRoom(Long businessUserId, String initialMessage, String email) {
+        User requester = getUser(email);
+        User business = userRepository.findById(businessUserId)
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
+
+        if (business.getPlan() != UserPlan.BUSINESS) {
+            throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
+        }
+        if (requester.getId().equals(businessUserId)) {
+            throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
+        }
+        if (chatRoomRepository.existsByCompanyIdAndOwnerIdAndLandIsNull(business.getId(), requester.getId())) {
+            throw new CustomException(GlobalErrorCode.CHAT_ROOM_ALREADY_EXISTS);
+        }
+
+        ChatRoom room = chatRoomRepository.save(
+                ChatRoom.builder().company(business).owner(requester)
+                        .status(ChatRoom.Status.ACCEPTED).build());
+
+        ChatMessage message = null;
+        if (initialMessage != null && !initialMessage.isBlank()) {
+            message = chatMessageRepository.save(
+                    ChatMessage.builder().room(room).sender(requester).content(initialMessage.trim()).build());
+        }
+        return toRoomResponse(room, email, message);
+    }
+
     @Transactional(readOnly = true)
     public List<ChatRoomResponse> getRooms(String email) {
         getUser(email);

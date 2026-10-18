@@ -1,5 +1,6 @@
 package com.heilous.land.service;
 
+import com.heilous.analysis.service.LandAnalysisService;
 import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
 import com.heilous.common.service.ImageStorageService;
@@ -50,6 +51,7 @@ public class LandService {
     private final ImageStorageService imageStorageService;
     private final LandCodeService landCodeService;
     private final SlopeService slopeService;
+    private final LandAnalysisService landAnalysisService;
 
     // 토지 등록
     @Transactional
@@ -144,6 +146,14 @@ public class LandService {
         // WFS: 용도지역/지구/기타 조회 및 저장
         if (pnu != null) {
             applyLandUseInfo(land, pnu);
+        }
+
+        // 일사량 조회
+        try {
+            Double solar = vWorldService.getSolarIrradiance(addressLandResponse.getX(), addressLandResponse.getY());
+            land.updateAverageSolarIrradiance(solar);
+        } catch (Exception e) {
+            log.warn("일사량 조회 실패: {}", e.getMessage());
         }
 
         // 이미지 저장
@@ -430,6 +440,17 @@ public class LandService {
             landEtcRepository.deleteByLandId(land.getId());
             applyLandUseInfo(land, pnu);
         }
+
+        // 일사량 재조회
+        try {
+            Double solar = vWorldService.getSolarIrradiance(addressLandResponse.getX(), addressLandResponse.getY());
+            land.updateAverageSolarIrradiance(solar);
+        } catch (Exception e) {
+            log.warn("일사량 조회 실패: {}", e.getMessage());
+        }
+
+        // AI 분석 캐시 무효화
+        land.invalidateAiCache();
     }
 
     // 토지 삭제

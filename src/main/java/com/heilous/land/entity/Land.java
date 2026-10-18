@@ -81,6 +81,22 @@ public class Land extends BaseEntity {
     // 경사도 (평균)
     private Double averageSlope;
 
+    // 일사량 (연간 일평균, kWh/m²/day)
+    private Double averageSolarIrradiance;
+
+    // AI 분석 결과 캐시 (JSON)
+    @Column(columnDefinition = "TEXT")
+    private String developmentScoreCache; // DevelopmentScoreResponse JSON
+
+    @Column(columnDefinition = "TEXT")
+    private String aiReportCache;         // AiReportResponse 텍스트
+
+    @Column(columnDefinition = "TEXT")
+    private String solarSuitabilityCache; // SolarSuitabilityReportResponse JSON
+
+    @Column(columnDefinition = "TEXT")
+    private String solarSummaryCache;     // SolarSummaryReportResponse JSON
+
     @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LandZone> landZones = new ArrayList<>();
 
@@ -136,5 +152,21 @@ public class Land extends BaseEntity {
 
     public void updateAverageSlope(Double averageSlope) {
         this.averageSlope = averageSlope;
+    }
+
+    public void updateAverageSolarIrradiance(Double averageSolarIrradiance) {
+        this.averageSolarIrradiance = averageSolarIrradiance;
+    }
+
+    public void updateDevelopmentScoreCache(String json) { this.developmentScoreCache = json; }
+    public void updateAiReportCache(String text) { this.aiReportCache = text; }
+    public void updateSolarSuitabilityCache(String json) { this.solarSuitabilityCache = json; }
+    public void updateSolarSummaryCache(String json) { this.solarSummaryCache = json; }
+
+    public void invalidateAiCache() {
+        this.developmentScoreCache = null;
+        this.aiReportCache = null;
+        this.solarSuitabilityCache = null;
+        this.solarSummaryCache = null;
     }
 }
