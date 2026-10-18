@@ -41,6 +41,20 @@ public class ChatController {
     ) {
         return APIResponse.ok(chatService.createDirectRoom(businessUserId, initialMessage, email));
     }
+
+    @Operation(
+            summary = "채팅방 생성 (토지 소유자 → 사업자)",
+            description = "토지 소유자(USER)가 자신의 토지를 선택해 특정 사업자에게 채팅을 시작합니다."
+    )
+    @PostMapping("/owner")
+    public APIResponse<ChatRoomResponse> createByOwner(
+            @RequestParam Long landId,
+            @RequestParam Long businessUserId,
+            @RequestParam(required = false) String initialMessage,
+            @AuthenticationPrincipal String email
+    ) {
+        return APIResponse.ok(chatService.createRoomByOwner(landId, businessUserId, initialMessage, email));
+    }
     @Operation(
             summary = "내 채팅방 목록 조회",
             description = "로그인한 사용자가 참여 중인 모든 채팅방 목록을 조회합니다. USER는 본인 토지에 대한 채팅방, COMPANY는 본인이 요청한 채팅방이 반환됩니다."

@@ -22,11 +22,11 @@ public class LandSpecification {
                 );
             }
 
-            // 면적 범위
+            // 희망 면적 범위
             if (filter.getMinArea() != null) {
                 predicates.add(
                         cb.greaterThanOrEqualTo(
-                                root.get("area"),
+                                root.get("desiredArea"),
                                 filter.getMinArea()
                         )
                 );
@@ -35,7 +35,7 @@ public class LandSpecification {
             if (filter.getMaxArea() != null) {
                 predicates.add(
                         cb.lessThanOrEqualTo(
-                                root.get("area"),
+                                root.get("desiredArea"),
                                 filter.getMaxArea()
                         )
                 );

@@ -35,7 +35,7 @@ public class BusinessProfileResponse {
 
     private String businessLicensePath;
     private boolean businessVerified;
-    private String profileImagePath;
+    private String profileImagePath; // User.profileImagePath
 
     public static BusinessProfileResponse from(BusinessProfile p) {
         return BusinessProfileResponse.builder()
@@ -54,7 +54,7 @@ public class BusinessProfileResponse {
                 .consultationEndTime(p.getConsultationEndTime())
                 .businessLicensePath(p.getBusinessLicensePath())
                 .businessVerified(p.isBusinessVerified())
-                .profileImagePath(p.getProfileImagePath())
+                .profileImagePath(p.getUser().getProfileImagePath())
                 .build();
     }
 }

@@ -49,8 +49,8 @@ public class BusinessProfileService {
                             request.isNationwideActive(), request.isConsultationAvailable(),
                             request.getConsultationStartTime(), request.getConsultationEndTime());
                     if (profileImage != null && !profileImage.isEmpty()) {
-                        imageStorageService.delete(existing.getProfileImagePath(), "business-profiles");
-                        existing.updateProfileImagePath(imageStorageService.store(profileImage, "business-profiles"));
+                        imageStorageService.delete(user.getProfileImagePath(), "profiles");
+                        user.updateProfileImage(imageStorageService.store(profileImage, "profiles"));
                     }
                 },
                 () -> {
@@ -73,7 +73,8 @@ public class BusinessProfileService {
                             .consultationEndTime(request.getConsultationEndTime())
                             .build();
                     if (profileImage != null && !profileImage.isEmpty()) {
-                        profile.updateProfileImagePath(imageStorageService.store(profileImage, "business-profiles"));
+                        imageStorageService.delete(user.getProfileImagePath(), "profiles");
+                        user.updateProfileImage(imageStorageService.store(profileImage, "profiles"));
                     }
                     businessProfileRepository.save(profile);
                 }

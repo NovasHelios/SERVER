@@ -61,10 +61,46 @@ public class ChatService {
         return toRoomResponse(room, email, message);
     }
 
+    /** 토지 소유자(USER)가 자신의 토지를 선택해 사업자에게 채팅 요청 */
+    @Transactional
+    public ChatRoomResponse createRoomByOwner(Long landId, Long businessUserId, String initialMessage, String email) {
+        User owner = getUser(email);
+
+        Land land = landRepository.findById(landId)
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
+
+        // 본인 토지인지 확인
+        if (!land.getOwner().getEmail().equals(email)) {
+            throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
+        }
+
+        User business = userRepository.findById(businessUserId)
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
+
+        if (business.getPlan() != UserPlan.BUSINESS) {
+            throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
+        }
+
+        // 중복 방 방지 (같은 사업자+토지 조합)
+        if (chatRoomRepository.existsByCompanyIdAndLandId(business.getId(), landId)) {
+            throw new CustomException(GlobalErrorCode.CHAT_ROOM_ALREADY_EXISTS);
+        }
+
+        ChatRoom room = chatRoomRepository.save(
+                ChatRoom.builder().land(land).company(business).owner(owner)
+                        .status(ChatRoom.Status.ACCEPTED).build());
+
+        ChatMessage message = null;
+        if (initialMessage != null && !initialMessage.isBlank()) {
+            message = chatMessageRepository.save(
+                    ChatMessage.builder().room(room).sender(owner).content(initialMessage.trim()).build());
+        }
+        return toRoomResponse(room, email, message);
+    }
+
     /** 토지 없이 비즈니스 유저에게 직접 채팅 요청 */
     @Transactional
-    public ChatRoomResponse createDirectRoom(Long businessUserId, String initialMessage, String email) {
-        User requester = getUser(email);
+    public ChatRoomResponse createDirectRoom(Long businessUserId, String initialMessage, String email) {        User requester = getUser(email);
         User business = userRepository.findById(businessUserId)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
 
