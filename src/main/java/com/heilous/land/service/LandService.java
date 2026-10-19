@@ -115,7 +115,7 @@ public class LandService {
         String[] regions = parseRegions(ldCodeNm);
 
         // 필수 토지 정보 검증
-        validateLandInfo(area, pnu, lcCodeNm, regstrSeCodeNm, addressLandResponse.getX(), addressLandResponse.getY());
+        validateLandInfo(area, pnu, lcCodeNm, regstrSeCodeNm, addressLandResponse.getX(), addressLandResponse.getY(), request.getDesiredArea());
 
         Land land = Land.builder()
                 .owner(owner)
@@ -267,12 +267,15 @@ public class LandService {
         return result;
     }
 
-    // 필수 토지 정보 검증 — null이면 등록/수정 실패
+    // 필수 토지 정보 검증 — null이면 등록/수정 실패, 희망면적 > 실제면적이면 실패
     private void validateLandInfo(Double area, String pnu, String lcCodeNm,
-                                  String regstrSeCodeNm, Double x, Double y) {
+                                  String regstrSeCodeNm, Double x, Double y, Double desiredArea) {
         if (area == null || pnu == null || lcCodeNm == null
                 || regstrSeCodeNm == null || x == null || y == null) {
             throw new CustomException(GlobalErrorCode.LAND_INFO_INCOMPLETE);
+        }
+        if (desiredArea != null && desiredArea > area) {
+            throw new CustomException(GlobalErrorCode.INVALID_INPUT);
         }
     }
 
@@ -411,7 +414,7 @@ public class LandService {
         String[] regions = parseRegions(ldCodeNm);
 
         // 필수 토지 정보 검증
-        validateLandInfo(area, pnu, lcCodeNm, regstrSeCodeNm, addressLandResponse.getX(), addressLandResponse.getY());
+        validateLandInfo(area, pnu, lcCodeNm, regstrSeCodeNm, addressLandResponse.getX(), addressLandResponse.getY(), request.getDesiredArea());
 
         land.updateLand(
                 addressLandResponse.getAddressName(),

@@ -2,6 +2,7 @@ package com.heilous.business.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.heilous.business.entity.BusinessProfile;
+import com.heilous.user.enums.UserPlan;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -36,6 +37,7 @@ public class BusinessProfileResponse {
     private String businessLicensePath;
     private boolean businessVerified;
     private String profileImagePath; // User.profileImagePath
+    private UserPlan userPlan;
 
     public static BusinessProfileResponse from(BusinessProfile p) {
         return BusinessProfileResponse.builder()
@@ -55,6 +57,7 @@ public class BusinessProfileResponse {
                 .businessLicensePath(p.getBusinessLicensePath())
                 .businessVerified(p.isBusinessVerified())
                 .profileImagePath(p.getUser().getProfileImagePath())
+                .userPlan(p.getUser().getPlan())
                 .build();
     }
 }
