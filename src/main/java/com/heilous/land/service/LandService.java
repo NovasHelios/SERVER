@@ -148,10 +148,19 @@ public class LandService {
             applyLandUseInfo(land, pnu);
         }
 
-        // 일사량 조회
+        // 설비용량 계산 (희망면적 기준) — 일사량 조회 전에 먼저 계산
+        if (request.getDesiredArea() != null) {
+            double capacityKw = Math.round(request.getDesiredArea() / 2.58 * 0.4) * 550.0 / 1000.0;
+            land.updateInstalledCapacityKw(capacityKw);
+        }
+
+        // 일사량 조회 후 발전량 계산
         try {
             Double solar = vWorldService.getSolarIrradiance(addressLandResponse.getX(), addressLandResponse.getY());
             land.updateAverageSolarIrradiance(solar);
+            if (solar != null && land.getInstalledCapacityKw() != null) {
+                land.updateAnnualGenerationKwh(land.getInstalledCapacityKw() * solar * 365 * 0.8);
+            }
         } catch (Exception e) {
             log.warn("일사량 조회 실패: {}", e.getMessage());
         }
@@ -444,10 +453,19 @@ public class LandService {
             applyLandUseInfo(land, pnu);
         }
 
-        // 일사량 재조회
+        // 설비용량 재계산 — 일사량 조회 전에 먼저
+        if (request.getDesiredArea() != null) {
+            double capacityKw = Math.round(request.getDesiredArea() / 2.58 * 0.4) * 550.0 / 1000.0;
+            land.updateInstalledCapacityKw(capacityKw);
+        }
+
+        // 일사량 재조회 후 발전량 재계산
         try {
             Double solar = vWorldService.getSolarIrradiance(addressLandResponse.getX(), addressLandResponse.getY());
             land.updateAverageSolarIrradiance(solar);
+            if (solar != null && land.getInstalledCapacityKw() != null) {
+                land.updateAnnualGenerationKwh(land.getInstalledCapacityKw() * solar * 365 * 0.8);
+            }
         } catch (Exception e) {
             log.warn("일사량 조회 실패: {}", e.getMessage());
         }

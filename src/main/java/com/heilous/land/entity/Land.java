@@ -84,6 +84,12 @@ public class Land extends BaseEntity {
     // 일사량 (연간 일평균, kWh/m²/day)
     private Double averageSolarIrradiance;
 
+    // 설비용량 (kW)
+    private Double installedCapacityKw;
+
+    // 연간 발전량 (kWh)
+    private Double annualGenerationKwh;
+
     // AI 분석 결과 캐시 (JSON)
     @Column(columnDefinition = "TEXT")
     private String developmentScoreCache; // DevelopmentScoreResponse JSON
@@ -156,6 +162,14 @@ public class Land extends BaseEntity {
 
     public void updateAverageSolarIrradiance(Double averageSolarIrradiance) {
         this.averageSolarIrradiance = averageSolarIrradiance;
+    }
+
+    public void updateInstalledCapacityKw(Double installedCapacityKw) {
+        this.installedCapacityKw = installedCapacityKw;
+    }
+
+    public void updateAnnualGenerationKwh(Double annualGenerationKwh) {
+        this.annualGenerationKwh = annualGenerationKwh;
     }
 
     public void updateDevelopmentScoreCache(String json) { this.developmentScoreCache = json; }

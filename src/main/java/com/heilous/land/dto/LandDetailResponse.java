@@ -64,6 +64,12 @@ public class LandDetailResponse {
     // 일사량 (연간 일평균, kWh/m²/day)
     private Double averageSolarIrradiance;
 
+    // 설비용량 (kW)
+    private Double installedCapacityKw;
+
+    // 연간 발전량 (kWh)
+    private Double annualGenerationKwh;
+
     @Getter
     @Builder
     public static class ZoneItem {
@@ -128,6 +134,8 @@ public class LandDetailResponse {
                 .createdAt(land.getCreatedAt())
                 .averageSlope(land.getAverageSlope())
                 .averageSolarIrradiance(land.getAverageSolarIrradiance())
+                .installedCapacityKw(land.getInstalledCapacityKw())
+                .annualGenerationKwh(land.getAnnualGenerationKwh())
                 .build();
     }
 }
