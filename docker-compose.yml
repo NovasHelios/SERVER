@@ -39,6 +39,7 @@ services:
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/heilous
       REDIS_HOST: redis
+      TZ: Asia/Seoul
     volumes:
       - /home/ubuntu/uploads:/app/uploads
       - /home/ubuntu/SERVER/src/main/resources/data:/app/data:ro
