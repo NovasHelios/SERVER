@@ -195,11 +195,11 @@ public class LandAnalysisService {
     // ── 경사도 점수 (20점 만점, 평균 경사도 기반) ───────────────
     private Integer calcSlopeScore(Double averageSlope) {
         if (averageSlope == null || Double.isNaN(averageSlope)) return null;
-        if (averageSlope <= 5) return 20;
-        if (averageSlope <= 10) return 17;
-        if (averageSlope <= 15) return 13;
-        if (averageSlope <= 20) return 8;
-        if (averageSlope <= 25) return 3;
+        if (averageSlope <= 3) return 20;
+        if (averageSlope <= 6) return 17;
+        if (averageSlope <= 9) return 13;
+        if (averageSlope <= 12) return 8;
+        if (averageSlope <= 15) return 3;
         return null;
     }
 
