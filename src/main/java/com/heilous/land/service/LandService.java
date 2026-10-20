@@ -146,6 +146,14 @@ public class LandService {
         // WFS: 용도지역/지구/기타 조회 및 저장
         if (pnu != null) {
             applyLandUseInfo(land, pnu);
+
+            // 도로접면코드 조회
+            try {
+                var chars = vWorldService.getLandCharacteristicsByPnu(pnu);
+                if (chars != null) land.updateRoadSideCode(chars.getRoadSideCode());
+            } catch (Exception e) {
+                log.warn("토지특성 WFS 조회 실패 (pnu={}): {}", pnu, e.getMessage());
+            }
         }
 
         // 설비용량 계산 (희망면적 기준) — 일사량 조회 전에 먼저 계산
@@ -451,6 +459,14 @@ public class LandService {
             landZoneRepository.deleteByLandId(land.getId());
             landEtcRepository.deleteByLandId(land.getId());
             applyLandUseInfo(land, pnu);
+
+            // 도로접면코드 재조회
+            try {
+                var chars = vWorldService.getLandCharacteristicsByPnu(pnu);
+                if (chars != null) land.updateRoadSideCode(chars.getRoadSideCode());
+            } catch (Exception e) {
+                log.warn("토지특성 WFS 조회 실패 (pnu={}): {}", pnu, e.getMessage());
+            }
         }
 
         // 설비용량 재계산 — 일사량 조회 전에 먼저

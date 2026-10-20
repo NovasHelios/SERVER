@@ -61,6 +61,9 @@ public class LandDetailResponse {
     // 경사도 (평균)
     private Double averageSlope;
 
+    // 도로접면코드
+    private String roadSideCode;
+
     // 일사량 (연간 일평균, kWh/m²/day)
     private Double averageSolarIrradiance;
 
@@ -133,6 +136,7 @@ public class LandDetailResponse {
                 .documentPath(land.getDocumentPath())
                 .createdAt(land.getCreatedAt())
                 .averageSlope(land.getAverageSlope())
+                .roadSideCode(land.getRoadSideCode())
                 .averageSolarIrradiance(land.getAverageSolarIrradiance())
                 .installedCapacityKw(land.getInstalledCapacityKw())
                 .annualGenerationKwh(land.getAnnualGenerationKwh())

@@ -67,7 +67,11 @@ public class LandAnalysisService {
         Integer regulationScore = calcRegulationScore(etcCodesStr);
         Integer zoneScore = calcZoneScore(land.getPrposAreaCode(), zoneCodesStr);
 
-        AiScoreResult aiResult = callAiForScores(land, areaScore, regulationScore, zoneScore, etcNamesStr, zoneNamesStr);
+        // 도로접근성: road_side_code 있으면 직접 계산, 없으면 AI 판단
+        Integer roadScoreFromCode = calcRoadScore(land.getRoadSideCode());
+
+        AiScoreResult aiResult = callAiForScores(land, areaScore, regulationScore, zoneScore,
+                etcNamesStr, zoneNamesStr, roadScoreFromCode);
 
         boolean disqualified = aiResult.slopeScore == null || aiResult.roadScore == null
                 || regulationScore == null || zoneScore == null;
@@ -175,11 +179,30 @@ public class LandAnalysisService {
         return 5;
     }
 
+    // ── 도로접근성 점수 (10점 만점, road_side_code 기반) ──
+    // 1=광대한면, 2=광대소각, 3=중로한면, 4=중로소각, 5=소로한면
+    // 6=소로소각, 7=세로한면, 8=세로가, 9=맹지
+    private Integer calcRoadScore(String roadSideCode) {
+        if (roadSideCode == null || roadSideCode.isBlank()) return null; // 데이터 없음 → AI 판단
+        return switch (roadSideCode.trim()) {
+            case "1" -> 10; // 광대한면
+            case "2" -> 8;  // 광대소각
+            case "3" -> 6;  // 중로한면
+            case "4", "5" -> 4; // 중로소각, 소로한면
+            case "6", "7" -> 3; // 소로소각, 세로한면
+            case "8" -> 2;  // 세로가
+            case "9" -> null; // 맹지 → 부적합
+            default -> null;
+        };
+    }
+
     // ── AI 호출 ──
     private AiScoreResult callAiForScores(Land land, int areaScore, Integer regulationScore,
-                                           Integer zoneScore, String etcCodes, String zoneCodes) {
+                                           Integer zoneScore, String etcCodes, String zoneCodes,
+                                           Integer roadScoreFromCode) {
         int sunlightScore = calcSunlightScore(land.getAverageSolarIrradiance());
-        String prompt = buildAiPrompt(land, areaScore, regulationScore, zoneScore, etcCodes, zoneCodes, sunlightScore);
+        String prompt = buildAiPrompt(land, areaScore, regulationScore, zoneScore, etcCodes, zoneCodes,
+                sunlightScore, roadScoreFromCode);
         try {
             String response = chatClientBuilder.build()
                     .prompt()
@@ -187,38 +210,50 @@ public class LandAnalysisService {
                     .user(prompt)
                     .call()
                     .content();
-            return parseAiResponse(response, sunlightScore);
+            return parseAiResponse(response, sunlightScore, roadScoreFromCode);
         } catch (Exception e) {
             log.warn("AI 분석 호출 실패: {}", e.getMessage());
-            return new AiScoreResult(sunlightScore, 13, 6, "AI 분석을 수행할 수 없습니다.");
+            return new AiScoreResult(sunlightScore, 13, roadScoreFromCode != null ? roadScoreFromCode : 6, "AI 분석을 수행할 수 없습니다.");
         }
     }
 
     private String buildAiPrompt(Land land, int areaScore, Integer regulationScore,
-                                  Integer zoneScore, String etcCodes, String zoneCodes, int sunlightScore) {
+                                  Integer zoneScore, String etcCodes, String zoneCodes,
+                                  int sunlightScore, Integer roadScoreFromCode) {
         String slopeStr = land.getAverageSlope() != null ? String.format("%.2f", land.getAverageSlope()) : "N/A (use regional estimate)";
         String solarStr = land.getAverageSolarIrradiance() != null ? String.format("%.3f kWh/m²/day", land.getAverageSolarIrradiance()) : "N/A";
+        String roadInfo = roadScoreFromCode != null
+                ? "Road Side Code: " + land.getRoadSideCode() + " → Pre-calculated Road Score: " + roadScoreFromCode + " / 10 (DO NOT re-evaluate)"
+                : "Road Side Code: N/A (evaluate based on region)";
+
+        String criteriaSection = roadScoreFromCode != null
+                ? "[Scoring Criteria — evaluate ONLY Slope]\n1. Slope (max 20 pts): 0~5°:20 / 5~10°:17 / 10~15°:13 / 15~20°:8 / 20~25°:3 / >25°:null"
+                : "[Scoring Criteria — evaluate ONLY these 2]\n1. Slope (max 20 pts): 0~5°:20 / 5~10°:17 / 10~15°:13 / 15~20°:8 / 20~25°:3 / >25°:null\n2. Road Accessibility (max 10 pts): direct:10 / <50m:8 / 50~100m:6 / 100~200m:3 / >200m:null";
+
+        String roadScoreField = roadScoreFromCode != null
+                ? "ROAD_SCORE: " + roadScoreFromCode
+                : "ROAD_SCORE: <number or null>";
+
         return String.format("""
                 You are a land suitability analyst for solar panel installation projects in South Korea.
-                Based on the land information below, evaluate the following 2 criteria and provide a brief one-line rationale for each of the 6 criteria listed.
+                Based on the land information below, evaluate the criteria and provide a brief one-line rationale for each.
 
                 [Land Information]
                 Address: %s / Land Category: %s / Actual Area: %.1f sqm / Desired Area: %s sqm
                 Region: %s %s / Zoning: %s / Zoning Conflict: %s
                 District Zones: %s / Other Regulations: %s
                 Average Slope: %s degrees / Average Solar Irradiance: %s
+                %s
 
                 [Pre-calculated Scores]
                 Solar Irradiance Score: %d / 25 / Developable Area Score: %d / 10
                 Land Use Regulation Score: %s / 20 / Zoning Score: %s / 15
 
-                [Scoring Criteria — evaluate ONLY these 2]
-                1. Slope (max 20 pts): 0~5°:20 / 5~10°:17 / 10~15°:13 / 15~20°:8 / 20~25°:3 / >25°:null
-                2. Road Accessibility (max 10 pts): direct:10 / <50m:8 / 50~100m:6 / 100~200m:3 / >200m:null
+                %s
 
                 Respond ONLY in this exact format:
                 SLOPE_SCORE: <number or null>
-                ROAD_SCORE: <number or null>
+                %s
                 RATIONALE_SUNLIGHT: <one-line reason in Korean>
                 RATIONALE_SLOPE: <one-line reason in Korean>
                 RATIONALE_AREA: <one-line reason in Korean>
@@ -232,23 +267,32 @@ public class LandAnalysisService {
                 nullSafe(land.getRegionSido()), nullSafe(land.getRegionSigungu()),
                 nullSafe(land.getPrposAreaName()), nullSafe(land.getPrposAreaCnflcAtNm()),
                 zoneCodes.isBlank() ? "none" : zoneCodes, etcCodes.isBlank() ? "none" : etcCodes,
-                slopeStr, solarStr, sunlightScore, areaScore,
+                slopeStr, solarStr, roadInfo,
+                sunlightScore, areaScore,
                 regulationScore != null ? regulationScore : "disqualified",
-                zoneScore != null ? zoneScore : "disqualified");
+                zoneScore != null ? zoneScore : "disqualified",
+                criteriaSection, roadScoreField);
     }
 
-    private AiScoreResult parseAiResponse(String response, int sunlightScore) {
+    private AiScoreResult parseAiResponse(String response, int sunlightScore, Integer roadScoreFromCode) {
         log.info("AI 분석 원본 응답:\n{}", response);
-        if (response == null || response.isBlank()) return new AiScoreResult(sunlightScore, 13, 6, "AI 분석을 수행할 수 없습니다.");
+        if (response == null || response.isBlank()) {
+            return new AiScoreResult(sunlightScore, 13, roadScoreFromCode != null ? roadScoreFromCode : 6, "AI 분석을 수행할 수 없습니다.");
+        }
 
-        Integer slope = 13, roadScore = 6;
+        Integer slope = 13;
+        Integer roadScore = roadScoreFromCode; // 코드로 이미 계산된 경우 우선 사용
+
         Map<String, String> lines = new HashMap<>();
         for (String line : response.split("\n")) {
             int idx = line.indexOf(": ");
             if (idx > 0) lines.put(line.substring(0, idx).trim(), line.substring(idx + 2).trim());
         }
         try { String v = lines.getOrDefault("SLOPE_SCORE", "13"); slope = "null".equalsIgnoreCase(v) ? null : Integer.parseInt(v); } catch (Exception ignored) {}
-        try { String v = lines.getOrDefault("ROAD_SCORE", "6"); roadScore = "null".equalsIgnoreCase(v) ? null : Integer.parseInt(v); } catch (Exception ignored) {}
+        // road_side_code가 없을 때만 AI 값 사용
+        if (roadScoreFromCode == null) {
+            try { String v = lines.getOrDefault("ROAD_SCORE", "6"); roadScore = "null".equalsIgnoreCase(v) ? null : Integer.parseInt(v); } catch (Exception ignored) {}
+        }
 
         StringBuilder sb = new StringBuilder();
         appendRationale(sb, "일사량", lines.get("RATIONALE_SUNLIGHT"));

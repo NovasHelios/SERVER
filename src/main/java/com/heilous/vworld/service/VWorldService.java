@@ -5,6 +5,7 @@ import com.heilous.common.exception.CustomException;
 import com.heilous.common.exception.GlobalErrorCode;
 import com.heilous.vworld.dto.AddressLandResponse;
 import com.heilous.vworld.dto.KakaoAddressResponse;
+import com.heilous.vworld.dto.LandCharacteristicsWfsResponse;
 import com.heilous.vworld.dto.NasaPowerResponse;
 import com.heilous.vworld.dto.PossessionAttrResponse;
 import com.heilous.vworld.dto.VWorldLandRequest;
@@ -36,10 +37,11 @@ public class VWorldService {
     @Value("${vworld.api.domain:}")
     private String apiDomain;
 
-    private static final String API_URL            = "http://api.vworld.kr/ned/data/ladfrlList";
-    private static final String WFS_URL            = "http://api.vworld.kr/ned/wfs/getLandUseWFS";
-    private static final String POSSESSION_URL     = "https://api.vworld.kr/ned/data/getPossessionAttr";
-    private static final String NASA_POWER_URL     = "https://power.larc.nasa.gov/api/temporal/daily/point";
+    private static final String API_URL                  = "http://api.vworld.kr/ned/data/ladfrlList";
+    private static final String WFS_URL                  = "http://api.vworld.kr/ned/wfs/getLandUseWFS";
+    private static final String POSSESSION_URL           = "https://api.vworld.kr/ned/data/getPossessionAttr";
+    private static final String NASA_POWER_URL           = "https://power.larc.nasa.gov/api/temporal/daily/point";
+    private static final String LAND_CHARACTERISTICS_URL = "http://api.vworld.kr/ned/wfs/getLandCharacteristicsWFS";
 
     public VWorldLandResponse getLandInfo(VWorldLandRequest request) {
         try {
@@ -116,6 +118,29 @@ public class VWorldService {
             return objectMapper.readValue(call(urlString, 5_000, 10_000), VWorldWfsResponse.class);
         } catch (Exception e) {
             log.error("VWorld WFS API 호출 실패", e);
+            return null;
+        }
+    }
+
+    /**
+     * PNU로 토지특성 WFS 조회 (getLandCharacteristicsWFS) — road_side_code 저장용
+     */
+    public LandCharacteristicsWfsResponse getLandCharacteristicsByPnu(String pnu) {
+        try {
+            String urlString = UriComponentsBuilder.fromHttpUrl(LAND_CHARACTERISTICS_URL)
+                    .queryParam("key", apiKey)
+                    .queryParam("domain", apiDomain)
+                    .queryParam("typename", "dt_d194")
+                    .queryParam("pnu", pnu)
+                    .queryParam("maxFeatures", "1")
+                    .queryParam("resultType", "results")
+                    .queryParam("srsName", "EPSG:4326")
+                    .queryParam("output", "application/json")
+                    .build().toUriString();
+
+            return objectMapper.readValue(call(urlString, 5_000, 10_000), LandCharacteristicsWfsResponse.class);
+        } catch (Exception e) {
+            log.error("VWorld LandCharacteristics WFS 호출 실패: {}", e.getMessage());
             return null;
         }
     }

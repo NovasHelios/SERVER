@@ -81,6 +81,9 @@ public class Land extends BaseEntity {
     // 경사도 (평균)
     private Double averageSlope;
 
+    // 도로접면코드 (getLandCharacteristicsWFS)
+    private String roadSideCode;
+
     // 일사량 (연간 일평균, kWh/m²/day)
     private Double averageSolarIrradiance;
 
@@ -158,6 +161,10 @@ public class Land extends BaseEntity {
 
     public void updateAverageSlope(Double averageSlope) {
         this.averageSlope = averageSlope;
+    }
+
+    public void updateRoadSideCode(String roadSideCode) {
+        this.roadSideCode = roadSideCode;
     }
 
     public void updateAverageSolarIrradiance(Double averageSolarIrradiance) {
