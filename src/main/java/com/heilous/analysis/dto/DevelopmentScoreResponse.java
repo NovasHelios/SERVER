@@ -28,6 +28,9 @@ public class DevelopmentScoreResponse {
     @Schema(description = "도로 접근성 점수 (0~10 또는 부적합)", example = "10")
     private Integer roadScore;
 
+    @Schema(description = "도로접면코드 (점수 산출 근거)", example = "3")
+    private String roadSideCode;
+
     @Schema(description = "토지이용규제 점수 (0~20 또는 부적합)", example = "14")
     private Integer regulationScore;
 

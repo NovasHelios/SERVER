@@ -93,6 +93,7 @@ public class LandAnalysisService {
                 .slopeScore(aiResult.slopeScore)
                 .areaScore(areaScore)
                 .roadScore(aiResult.roadScore)
+                .roadSideCode(land.getRoadSideCode())
                 .regulationScore(regulationScore)
                 .zoneScore(zoneScore)
                 .totalScore(totalScore)
