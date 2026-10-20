@@ -8,11 +8,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.LinkOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.util.Set;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -109,5 +113,33 @@ public class ImageStorageService {
         } catch (IOException e) {
             log.warn("파일 삭제 실패: {}/{}", subDir, filename);
         }
+    }
+
+    /**
+     * DB에서 참조되지 않고 기준 시각 이전에 업로드된 파일만 삭제합니다.
+     * 참조되지 않는 파일은 DB 행이 없으므로 파일의 마지막 수정 시각을 업로드 시각으로 사용합니다.
+     */
+    public int deleteUnreferencedFilesOlderThan(String subDir, Set<String> referencedFilenames,
+                                                 Instant cutoff) {
+        Path targetDir = Paths.get(uploadDir, subDir);
+        if (!Files.isDirectory(targetDir)) return 0;
+
+        int deletedCount = 0;
+        try (Stream<Path> files = Files.list(targetDir)) {
+            for (Path file : files.toList()) {
+                if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) continue;
+                String filename = file.getFileName().toString();
+                if (referencedFilenames.contains(filename)) continue;
+                if (Files.getLastModifiedTime(file).toInstant().isAfter(cutoff)) continue;
+
+                if (Files.deleteIfExists(file)) {
+                    deletedCount++;
+                    log.info("참조되지 않는 토지 이미지 파일 삭제: {}", filename);
+                }
+            }
+        } catch (IOException e) {
+            log.warn("참조되지 않는 파일 정리 실패 ({}/): {}", subDir, e.getMessage());
+        }
+        return deletedCount;
     }
 }
