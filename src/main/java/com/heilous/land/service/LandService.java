@@ -6,6 +6,7 @@ import com.heilous.common.exception.GlobalErrorCode;
 import com.heilous.common.service.ImageStorageService;
 import com.heilous.land.dto.LandDetailResponse;
 import com.heilous.land.dto.LandFilterRequest;
+import com.heilous.land.dto.LandPageResponse;
 import com.heilous.land.dto.LandRegisterRequest;
 import com.heilous.land.dto.LandResponse;
 import com.heilous.land.dto.LandUpdateRequest;
@@ -28,6 +29,9 @@ import com.heilous.vworld.dto.VWorldWfsResponse;
 import com.heilous.vworld.service.VWorldService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,6 +40,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -112,8 +118,6 @@ public class LandService {
             ldCodeNm = info.getLdCodeNm();
         }
 
-        String[] regions = parseRegions(ldCodeNm);
-
         // 필수 토지 정보 검증
         validateLandInfo(area, pnu, lcCodeNm, regstrSeCodeNm, addressLandResponse.getX(), addressLandResponse.getY(), request.getDesiredArea());
 
@@ -128,9 +132,9 @@ public class LandService {
                 .cnrsPsnCo(cnrsPsnCo)
                 .pnu(pnu)
                 .ldCodeNm(ldCodeNm)
-                .regionSido(regions[0])
-                .regionSigungu(regions[1])
-                .regionEupmyeondong(regions[2])
+                .regionSido(addressLandResponse.getRegionSido())
+                .regionSigungu(addressLandResponse.getRegionSigungu())
+                .regionEupmyeondong(addressLandResponse.getRegionEupmyeondong())
                 .desiredPrice(request.getTransactionType() == Land.TransactionType.BUSINESS_HOPE
                         ? null : request.getDesiredPrice())
                 .description(request.getDescription())
@@ -227,11 +231,28 @@ public class LandService {
 
     // 내 토지 조회
     @Transactional(readOnly = true)
-    public List<LandResponse> getMyLands(String email) {
-        return landRepository.findByOwnerEmailOrderByIdDesc(email)
-                .stream()
-                .map(LandResponse::from)
-                .toList();
+    public LandPageResponse getMyLands(String email, int page, String sortCode) {
+        Page<Land> lands = landRepository.findByOwnerEmail(
+                email, PageRequest.of(Math.max(0, page), 20, toLandSort(sortCode)));
+
+        return LandPageResponse.builder()
+                .content(lands.getContent().stream().map(LandResponse::from).toList())
+                .page(lands.getNumber())
+                .size(lands.getSize())
+                .totalElements(lands.getTotalElements())
+                .totalPages(lands.getTotalPages())
+                .hasNext(lands.hasNext())
+                .build();
+    }
+
+    private Sort toLandSort(String sortCode) {
+        return switch (sortCode == null ? "n" : sortCode.toLowerCase()) {
+            case "o" -> Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id"));
+            case "pd" -> Sort.by(Sort.Order.desc("desiredPrice").nullsLast(), Sort.Order.desc("id"));
+            case "pa" -> Sort.by(Sort.Order.asc("desiredPrice").nullsLast(), Sort.Order.asc("id"));
+            case "n" -> Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+            default -> Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+        };
     }
 
     // 시군구별 거래유형 통계
@@ -269,18 +290,6 @@ public class LandService {
             );
             result.add(RegionStatsResponse.builder().sido(sido).sigungus(sigungus).build());
         });
-        return result;
-    }
-
-    // ldCodeNm → [시/도, 시/군/구, 읍/면/동] 파싱
-    private String[] parseRegions(String ldCodeNm) {
-        String[] result = new String[3];
-        if (ldCodeNm == null || ldCodeNm.isBlank()) return result;
-
-        String[] parts = ldCodeNm.trim().split("\\s+");
-        if (parts.length > 0) result[0] = parts[0];
-        if (parts.length > 1) result[1] = parts[1];
-        if (parts.length > 2) result[2] = parts[2];
         return result;
     }
 
@@ -333,6 +342,7 @@ public class LandService {
             String prposAreaCode = null, prposAreaCnflcAt = null, prposAreaCnflcAtNm = null;
             List<LandZone> zones = new ArrayList<>();
             List<LandEtc> etcs  = new ArrayList<>();
+            Set<String> etcCodes = new HashSet<>();
 
             for (int i = 0; i < codes.length; i++) {
                 String code    = codes[i].trim();
@@ -348,9 +358,11 @@ public class LandService {
                 } else if (isDistrictCode(code)) {
                     zones.add(LandZone.builder().land(land).code(code)
                             .codeName(landCodeService.getName(code)).cnflcAt(cnflc).cnflcAtNm(cnflcNm).build());
-                } else {
+                } else if (!code.isBlank() && etcCodes.add(code)) {
                     etcs.add(LandEtc.builder().land(land).code(code)
                             .codeName(landCodeService.getName(code)).cnflcAt(cnflc).cnflcAtNm(cnflcNm).build());
+                } else if (!code.isBlank()) {
+                    log.debug("중복 LandEtc 코드 제외 (pnu={}, code={})", pnu, code);
                 }
             }
 
@@ -428,8 +440,6 @@ public class LandService {
             ldCodeNm = info.getLdCodeNm();
         }
 
-        String[] regions = parseRegions(ldCodeNm);
-
         // 필수 토지 정보 검증 (희망면적은 기존 값으로 검증)
         validateLandInfo(area, pnu, lcCodeNm, regstrSeCodeNm, addressLandResponse.getX(), addressLandResponse.getY(), land.getDesiredArea());
 
@@ -443,9 +453,9 @@ public class LandService {
                 cnrsPsnCo,
                 pnu,
                 ldCodeNm,
-                regions[0],
-                regions[1],
-                regions[2],
+                addressLandResponse.getRegionSido(),
+                addressLandResponse.getRegionSigungu(),
+                addressLandResponse.getRegionEupmyeondong(),
                 request.getDesiredPrice(),
                 land.getDesiredArea(),  // 희망면적은 수정 불가 — 기존 값 유지
                 request.getDescription(),

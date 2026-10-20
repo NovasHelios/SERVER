@@ -1,6 +1,7 @@
 package com.heilous.business.service;
 
 import com.heilous.business.dto.BusinessProfileRequest;
+import com.heilous.business.dto.BusinessProfilePageResponse;
 import com.heilous.business.dto.BusinessProfileResponse;
 import com.heilous.business.entity.BusinessProfile;
 import com.heilous.business.repository.BusinessProfileRepository;
@@ -11,6 +12,9 @@ import com.heilous.user.entity.User;
 import com.heilous.user.enums.UserPlan;
 import com.heilous.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -108,11 +112,18 @@ public class BusinessProfileService {
 
     // 전체 사업자 프로필 조회 (자신 제외)
     @Transactional(readOnly = true)
-    public List<BusinessProfileResponse> getAllProfiles(String email) {
-        return businessProfileRepository.findAll().stream()
-                .filter(p -> !p.getUser().getEmail().equals(email))
-                .map(BusinessProfileResponse::from)
-                .toList();
+    public BusinessProfilePageResponse getAllProfiles(String email, int page) {
+        Page<BusinessProfile> profiles = businessProfileRepository.findByUserEmailNot(
+                email, PageRequest.of(Math.max(0, page), 20, Sort.by(Sort.Order.desc("id"))));
+
+        return BusinessProfilePageResponse.builder()
+                .content(profiles.getContent().stream().map(BusinessProfileResponse::from).toList())
+                .page(profiles.getNumber())
+                .size(profiles.getSize())
+                .totalElements(profiles.getTotalElements())
+                .totalPages(profiles.getTotalPages())
+                .hasNext(profiles.hasNext())
+                .build();
     }
 
     // id로 사업자 프로필 상세 조회

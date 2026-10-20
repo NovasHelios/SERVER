@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.List;
 import java.util.UUID;
@@ -126,7 +127,9 @@ public class ImageStorageService {
 
         int deletedCount = 0;
         try (Stream<Path> files = Files.list(targetDir)) {
-            for (Path file : files.toList()) {
+            Iterator<Path> iterator = files.iterator();
+            while (iterator.hasNext()) {
+                Path file = iterator.next();
                 if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) continue;
                 String filename = file.getFileName().toString();
                 if (referencedFilenames.contains(filename)) continue;

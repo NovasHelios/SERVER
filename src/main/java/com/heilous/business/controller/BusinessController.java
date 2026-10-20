@@ -1,6 +1,7 @@
 package com.heilous.business.controller;
 
 import com.heilous.business.dto.BusinessProfileRequest;
+import com.heilous.business.dto.BusinessProfilePageResponse;
 import com.heilous.business.dto.BusinessProfileResponse;
 import com.heilous.business.service.BusinessProfileService;
 import com.heilous.common.dto.APIResponse;
@@ -78,12 +79,13 @@ public class BusinessController {
         return APIResponse.ok(businessProfileService.getMyProfile(email));
     }
 
-    @Operation(summary = "사업자 프로필 전체 조회 — 본인은 제외됩니다.")
+    @Operation(summary = "사업자 프로필 전체 조회 — 본인을 제외하고 20명씩 조회합니다.")
     @GetMapping("/profiles")
-    public APIResponse<List<BusinessProfileResponse>> getAllProfiles(
-            @AuthenticationPrincipal String email
+    public APIResponse<BusinessProfilePageResponse> getAllProfiles(
+            @AuthenticationPrincipal String email,
+            @RequestParam(defaultValue = "0") int page
     ) {
-        return APIResponse.ok(businessProfileService.getAllProfiles(email));
+        return APIResponse.ok(businessProfileService.getAllProfiles(email, page));
     }
 
     @Operation(summary = "사업자 프로필 상세 조회 — 프로필 ID로 조회합니다.")

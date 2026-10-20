@@ -7,6 +7,7 @@ import com.heilous.user.entity.User;
 import com.heilous.wish.entity.Wish;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.List;
 @Entity
 @Table(name = "lands", indexes = {
         @Index(name = "idx_lands_status_id", columnList = "status, id"),
-        @Index(name = "idx_lands_owner_id", columnList = "owner_id")
+        @Index(name = "idx_lands_owner_id_id", columnList = "owner_id, id")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -107,12 +108,15 @@ public class Land extends BaseEntity {
     private String solarSummaryCache;     // SolarSummaryReportResponse JSON
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     private List<LandZone> landZones = new ArrayList<>();
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     private List<LandEtc> landEtcs = new ArrayList<>();
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @BatchSize(size = 50)
     private List<LandImage> landImages = new ArrayList<>();
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)

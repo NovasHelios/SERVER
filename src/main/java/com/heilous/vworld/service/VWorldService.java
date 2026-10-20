@@ -84,6 +84,9 @@ public class VWorldService {
 
         return AddressLandResponse.builder()
                 .pnu(pnu).addressName(doc.getAddressName()).x(x).y(y)
+                .regionSido(doc.getAddress().getRegion1DepthName())
+                .regionSigungu(doc.getAddress().getRegion2DepthName())
+                .regionEupmyeondong(doc.getAddress().getRegion3DepthName())
                 .zoneNo(roadAddress != null ? roadAddress.getZoneNo() : null)
                 .buildingName(roadAddress != null ? roadAddress.getBuildingName() : null)
                 .landInfo(landInfo).build();

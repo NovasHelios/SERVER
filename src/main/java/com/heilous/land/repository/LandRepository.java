@@ -2,6 +2,8 @@ package com.heilous.land.repository;
 
 import com.heilous.land.entity.Land;
 import com.heilous.land.entity.Land.LandStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -20,8 +22,7 @@ public interface LandRepository extends JpaRepository<Land, Long>, JpaSpecificat
 
     boolean existsByAddress(String address);
 
-    @Query("select l from Land l join fetch l.owner where l.owner.email = :email order by l.id desc")
-    List<Land> findByOwnerEmailOrderByIdDesc(@Param("email") String email);
+    Page<Land> findByOwnerEmail(String email, Pageable pageable);
 
     @Query("select l from Land l join fetch l.owner left join fetch l.landImages where l.id = :id")
     Optional<Land> findWithImagesById(@Param("id") Long id);

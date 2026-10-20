@@ -3,6 +3,7 @@ package com.heilous.land.controller;
 import com.heilous.common.dto.APIResponse;
 import com.heilous.land.dto.LandDetailResponse;
 import com.heilous.land.dto.LandFilterRequest;
+import com.heilous.land.dto.LandPageResponse;
 import com.heilous.land.dto.LandRegisterRequest;
 import com.heilous.land.dto.LandResponse;
 import com.heilous.land.dto.LandUpdateRequest;
@@ -69,16 +70,17 @@ public class LandController {
         );
     }
 
-    @Operation(
-            summary = "내 토지 목록 조회",
-            description = "로그인한 USER가 본인이 등록한 토지 목록을 최신순으로 조회합니다."
-    )
+    @Operation(summary = "내 토지 목록 조회",
+            description = "로그인한 USER가 본인이 등록한 토지를 20개씩 조회합니다. "
+                    + "sort: n(최신순), o(오래된순), pd(희망가격 높은순), pa(희망가격 낮은순)")
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/me")
-    public APIResponse<List<LandResponse>> getMyLands(
-            @AuthenticationPrincipal String email
+    public APIResponse<LandPageResponse> getMyLands(
+            @AuthenticationPrincipal String email,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "n") String sort
     ) {
-        return APIResponse.ok(landService.getMyLands(email));
+        return APIResponse.ok(landService.getMyLands(email, page, sort));
     }
 
     @Operation(
