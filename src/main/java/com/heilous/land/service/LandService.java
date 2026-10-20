@@ -430,8 +430,8 @@ public class LandService {
 
         String[] regions = parseRegions(ldCodeNm);
 
-        // 필수 토지 정보 검증
-        validateLandInfo(area, pnu, lcCodeNm, regstrSeCodeNm, addressLandResponse.getX(), addressLandResponse.getY(), request.getDesiredArea());
+        // 필수 토지 정보 검증 (희망면적은 기존 값으로 검증)
+        validateLandInfo(area, pnu, lcCodeNm, regstrSeCodeNm, addressLandResponse.getX(), addressLandResponse.getY(), land.getDesiredArea());
 
         land.updateLand(
                 addressLandResponse.getAddressName(),
@@ -447,7 +447,7 @@ public class LandService {
                 regions[1],
                 regions[2],
                 request.getDesiredPrice(),
-                request.getDesiredArea(),
+                land.getDesiredArea(),  // 희망면적은 수정 불가 — 기존 값 유지
                 request.getDescription(),
                 request.getTransactionType(),
                 addressLandResponse.getX(),
