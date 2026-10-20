@@ -11,5 +11,7 @@ public class SolarSummaryReportResponse {
     private Integer totalScore;
     private String grade;
     private boolean disqualified;
-    private String report;
+    private String favorableConditions;
+    private String constraints;
+    private String additionalChecks;
 }

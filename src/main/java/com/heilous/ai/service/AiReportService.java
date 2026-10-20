@@ -104,7 +104,11 @@ public class AiReportService {
         // 캐시 히트
         if (land.getSolarSummaryCache() != null) {
             try {
-                return objectMapper.readValue(land.getSolarSummaryCache(), SolarSummaryReportResponse.class);
+                SolarSummaryReportResponse cached = objectMapper.readValue(
+                        land.getSolarSummaryCache(), SolarSummaryReportResponse.class);
+                if (hasSummarySections(cached)) {
+                    return cached;
+                }
             } catch (Exception e) {
                 log.warn("태양광 요약 캐시 역직렬화 실패, 재생성: {}", e.getMessage());
             }
@@ -115,10 +119,18 @@ public class AiReportService {
 
         String prompt = """
                 당신은 한국 토지의 태양광 설치 후보 적합성을 설명하는 분석가입니다.
-                제공한 토지 상세정보와 적합도 결과만 근거로 한국어 6~7문장의 종합 보고서를 작성하세요.
-                여러 조건을 함께 평가하고 유리한 조건, 제약, 추가 확인사항을 균형 있게 포함하세요.
+                제공한 토지 상세정보와 적합도 결과만 근거로 세 종류의 평가를 작성하세요.
+                각 평가는 2~4문장을 한 줄로 작성하며, 문장은 공백으로 구분하세요.
+                유리한 조건에는 실제로 유리한 점수·수치·용도지역명·규제명을 직접 언급하고 태양광 설치에 어떤 이점인지 설명하세요. 유리한 근거가 없다면 "확인된 유리한 조건 없음"이라고 작성하세요.
+                제약 요인에는 점수가 낮은 항목, 부적합 사유, 규제·용도지역 제약을 빠짐없이 작성하세요. "안 좋은 점이 있습니다", "제약이 있을 수 있습니다"처럼 두루뭉술하게 쓰지 말고, 원인과 영향을 구체적으로 설명하세요.
+                추가 확인 사항에는 현장 또는 인허가 단계에서 무엇을 누구에게 또는 어떤 방법으로 확인해야 하는지 구체적으로 작성하세요. "추가 확인이 필요합니다"로 끝내지 마세요.
                 주어지지 않은 현장 사실(실제 경사도, 일사량, 도로까지 거리 등)은 추정해 사실처럼 쓰지 말고 확인이 필요하다고 명시하세요.
-                부적합이면 그 사유를 분명히 설명하고 가능성을 과장하지 마세요. 제목이나 목록 없이 문단만 반환하세요.
+                부적합이면 그 사유를 제약 요인에 분명히 설명하고 가능성을 과장하지 마세요.
+
+                아래 형식의 세 줄만 반환하세요. 키 이름을 바꾸거나 Markdown 제목·불릿·코드 블록을 추가하지 마세요.
+                FAVORABLE_CONDITIONS: <유리한 조건 설명>
+                CONSTRAINTS: <제약 요인 설명>
+                ADDITIONAL_CHECKS: <추가 확인 사항 설명>
 
                 [토지 상세정보]
                 주소: %s / 지역: %s %s %s / 지목/면적: %s / %s㎡ (희망 면적: %s㎡)
@@ -144,11 +156,14 @@ public class AiReportService {
                 scoreText(s.getRoadScore()), scoreText(s.getRegulationScore()), scoreText(s.getZoneScore()),
                 scoreText(s.getTotalScore()), nullSafe(s.getGrade()), s.isDisqualified(), nullSafe(s.getRationale()));
 
-        String report = chatClient.prompt().user(prompt).call().content();
-        String reportText = report == null ? "" : report.trim();
+        String response = chatClient.prompt().user(prompt).call().content();
+        Map<String, String> summaries = parseKeyValues(response);
 
         SolarSummaryReportResponse result = new SolarSummaryReportResponse(
-                land.getId(), land.getAddress(), s.getTotalScore(), s.getGrade(), s.isDisqualified(), reportText);
+                land.getId(), land.getAddress(), s.getTotalScore(), s.getGrade(), s.isDisqualified(),
+                summaryText(summaries, "FAVORABLE_CONDITIONS"),
+                summaryText(summaries, "CONSTRAINTS"),
+                summaryText(summaries, "ADDITIONAL_CHECKS"));
 
         // 캐시 저장
         try {
@@ -226,6 +241,17 @@ public class AiReportService {
             if (sep > 0) result.put(line.substring(0, sep).trim(), line.substring(sep + 1).trim());
         }
         return result;
+    }
+
+    private String summaryText(Map<String, String> summaries, String key) {
+        String text = summaries.get(key);
+        return text == null || text.isBlank() ? "AI 평가 결과를 해석하지 못했습니다." : text;
+    }
+
+    private boolean hasSummarySections(SolarSummaryReportResponse summary) {
+        return summary.getFavorableConditions() != null && !summary.getFavorableConditions().isBlank()
+                && summary.getConstraints() != null && !summary.getConstraints().isBlank()
+                && summary.getAdditionalChecks() != null && !summary.getAdditionalChecks().isBlank();
     }
 
     private String joinZones(Land land) {

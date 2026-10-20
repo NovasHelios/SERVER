@@ -171,7 +171,8 @@ public class LandService {
             Double solar = vWorldService.getSolarIrradiance(addressLandResponse.getX(), addressLandResponse.getY());
             land.updateAverageSolarIrradiance(solar);
             if (solar != null && land.getInstalledCapacityKw() != null) {
-                land.updateAnnualGenerationKwh(land.getInstalledCapacityKw() * solar * 365 * 0.8);
+                land.updateAnnualGenerationKwh(roundToOneDecimal(
+                        land.getInstalledCapacityKw() * solar * 365 * 0.8));
             }
         } catch (Exception e) {
             log.warn("일사량 조회 실패: {}", e.getMessage());
@@ -391,6 +392,10 @@ public class LandService {
         return prefix.compareTo("UQF") >= 0 && prefix.compareTo("UQQ") < 0;
     }
 
+    private double roundToOneDecimal(double value) {
+        return Math.round(value * 10.0) / 10.0;
+    }
+
     // 토지 수정
     @Transactional
     public void updateLand(
@@ -490,7 +495,8 @@ public class LandService {
             Double solar = vWorldService.getSolarIrradiance(addressLandResponse.getX(), addressLandResponse.getY());
             land.updateAverageSolarIrradiance(solar);
             if (solar != null && land.getInstalledCapacityKw() != null) {
-                land.updateAnnualGenerationKwh(land.getInstalledCapacityKw() * solar * 365 * 0.8);
+                land.updateAnnualGenerationKwh(roundToOneDecimal(
+                        land.getInstalledCapacityKw() * solar * 365 * 0.8));
             }
         } catch (Exception e) {
             log.warn("일사량 조회 실패: {}", e.getMessage());
