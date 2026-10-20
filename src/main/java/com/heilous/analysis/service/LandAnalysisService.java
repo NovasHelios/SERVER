@@ -57,7 +57,7 @@ public class LandAnalysisService {
                 log.warn("개발가능성 캐시 역직렬화 실패, 재분석: {}", e.getMessage());
             }
         }
-        }
+
 
         String etcCodesStr = land.getLandEtcs().stream()
                 .map(LandEtc::getCode).collect(Collectors.joining(","));
