@@ -70,7 +70,7 @@ public class LandService {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
 
-        if (landRepository.existsByAddress(request.getAddress())) {
+        if (landRepository.existsByOwnerIdAndAddress(owner.getId(), request.getAddress())) {
             throw new CustomException(GlobalErrorCode.LAND_ADDRESS_ALREADY_EXISTS);
         }
 
