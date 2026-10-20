@@ -44,10 +44,19 @@ public class LandAnalysisService {
         // 캐시 히트
         if (land.getDevelopmentScoreCache() != null) {
             try {
-                return objectMapper.readValue(land.getDevelopmentScoreCache(), DevelopmentScoreResponse.class);
+                DevelopmentScoreResponse cached = objectMapper.readValue(land.getDevelopmentScoreCache(), DevelopmentScoreResponse.class);
+                // road_side_code가 있으면 캐시의 roadScore를 재계산값으로 보정
+                Integer roadFromCode = calcRoadScore(land.getRoadSideCode());
+                if (roadFromCode != null && !roadFromCode.equals(cached.getRoadScore())) {
+                    // 캐시 무효화 후 재분석
+                    land.updateDevelopmentScoreCache(null);
+                } else {
+                    return cached;
+                }
             } catch (Exception e) {
                 log.warn("개발가능성 캐시 역직렬화 실패, 재분석: {}", e.getMessage());
             }
+        }
         }
 
         String etcCodesStr = land.getLandEtcs().stream()
