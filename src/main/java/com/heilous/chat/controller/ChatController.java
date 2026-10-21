@@ -44,7 +44,7 @@ public class ChatController {
 
     @Operation(
             summary = "채팅방 생성 (토지 소유자 → 사업자)",
-            description = "토지 소유자(USER)가 자신의 토지를 선택해 특정 사업자에게 채팅을 시작합니다."
+            description = "토지 소유자(USER)가 결제 완료 및 개발가능성 분석 통과한 본인 토지를 선택해 특정 사업자에게 채팅을 시작합니다."
     )
     @PostMapping("/owner")
     public APIResponse<ChatRoomResponse> createByOwner(

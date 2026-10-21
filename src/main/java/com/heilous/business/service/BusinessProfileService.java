@@ -91,7 +91,7 @@ public class BusinessProfileService {
     }
 
     private boolean hasOwnerOrBusinessFeatureAccess(User user) {
-        return user.getPlan() == UserPlan.OWNER || user.getPlan() == UserPlan.BUSINESS;
+        return user.getPlan() == UserPlan.PERSONAL || user.getPlan() == UserPlan.BUSINESS;
     }
 
     // 사업자 인증 파일 업로드

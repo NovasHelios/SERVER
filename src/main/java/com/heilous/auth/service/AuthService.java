@@ -46,7 +46,7 @@ public class AuthService {
                 .name(request.getName())
                 .phone(request.getPhone())
                 .role(UserRole.USER)
-                .plan(UserPlan.OWNER)
+                .plan(UserPlan.PERSONAL)
                 .isVerified(true)
                 .isActive(true)
                 .build();

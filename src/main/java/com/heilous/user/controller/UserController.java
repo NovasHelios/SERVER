@@ -74,7 +74,7 @@ public class UserController {
         return APIResponse.ok("프로필 이미지 업로드 완료");
     }
 
-    @Operation(summary = "플랜 변경 — OWNER / BUSINESS 중 선택")
+    @Operation(summary = "플랜 변경 — PERSONAL / BUSINESS 중 선택")
     @PatchMapping("/me/plan")
     public APIResponse<String> changePlan(
             @AuthenticationPrincipal String email,

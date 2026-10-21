@@ -74,6 +74,12 @@ public class ChatService {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
 
+        // 소유자가 사업자에게 먼저 채팅을 요청할 수 있는 토지는
+        // 분석을 통과하고 결제까지 완료된 토지로 제한한다.
+        if (!land.isPaid() || !land.isPassed()) {
+            throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
+        }
+
         User business = userRepository.findById(businessUserId)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
 
@@ -148,7 +154,7 @@ public class ChatService {
     }
 
     private boolean hasOwnerOrBusinessFeatureAccess(User user) {
-        return user.getPlan() == UserPlan.OWNER || user.getPlan() == UserPlan.BUSINESS;
+        return user.getPlan() == UserPlan.PERSONAL || user.getPlan() == UserPlan.BUSINESS;
     }
 
     @Transactional
