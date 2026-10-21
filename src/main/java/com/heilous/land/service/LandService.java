@@ -214,6 +214,7 @@ public class LandService {
 
         return landRepository.findAllByOrderByIdDesc()
                 .stream()
+                .filter(this::isPubliclyVisible)
                 .map(LandResponse::from)
                 .toList();
     }
@@ -240,8 +241,15 @@ public class LandService {
         return landRepository
                 .findAll(LandSpecification.buildFilter(filter))
                 .stream()
+                .filter(this::isPubliclyVisible)
                 .map(LandResponse::from)
                 .toList();
+    }
+
+    private boolean isPubliclyVisible(Land land) {
+        return land.getStatus() == Land.LandStatus.APPROVED
+                && land.isPaid()
+                && land.isPassed();
     }
 
     // 임시 결제 처리: 실제 PG 연동 전까지는 결제 완료 여부만 변경한다.
