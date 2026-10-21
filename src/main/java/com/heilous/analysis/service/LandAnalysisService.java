@@ -33,6 +33,7 @@ public class LandAnalysisService {
     private final ObjectMapper objectMapper;
 
     private static final int DEFAULT_YEARS = 6;
+    private static final int DEVELOPMENT_ANALYSIS_VERSION = 2;
 
     // ═══════════════════════════════════════════════════════════
     // 1. 개발가능성 분석 (캐시 우선)
@@ -53,6 +54,7 @@ public class LandAnalysisService {
                 if (Objects.equals(slopeScore, cached.getSlopeScore())
                         && Objects.equals(roadScore, cached.getRoadScore())
                         && Objects.equals(land.getRoadSideCode(), cached.getRoadSideCode())
+                        && cached.getAnalysisVersion() == DEVELOPMENT_ANALYSIS_VERSION
                         && hasExpandedRationales(cached.getRationale())) {
                     return cached;
                 }
@@ -77,13 +79,12 @@ public class LandAnalysisService {
 
         Double evalArea = land.getDesiredArea() != null ? land.getDesiredArea() : land.getArea();
         int areaScore = calcAreaScore(evalArea);
-        Integer regulationScore = calcRegulationScore(etcCodesStr);
-        Integer zoneScore = calcZoneScore(land.getPrposAreaCode(), zoneCodesStr);
-
-        // 점수는 서버에서 계산하고, AI는 제공된 점수의 평가 근거만 작성한다.
+        // 규제와 용도지역·용도지구는 목록의 개수나 코드 패턴이 아니라 AI가 내용을 해석해 평가한다.
         AiScoreResult aiResult = callAiForScores(
-                land, slopeScore, areaScore, roadScore, regulationScore, zoneScore,
+                land, slopeScore, areaScore, roadScore,
                 etcNamesStr, zoneNamesStr);
+        Integer regulationScore = aiResult.regulationScore();
+        Integer zoneScore = aiResult.zoneScore();
 
         boolean disqualified = slopeScore == null || roadScore == null
                 || regulationScore == null || zoneScore == null;
@@ -120,6 +121,7 @@ public class LandAnalysisService {
                 .zoneNames(zoneNamesStr.isBlank() ? null : zoneNamesStr)
                 .etcNames(etcNamesStr.isBlank() ? null : etcNamesStr)
                 .rationale(aiResult.rationale())
+                .analysisVersion(DEVELOPMENT_ANALYSIS_VERSION)
                 .build();
 
         // 분석 결과 캐시 저장
@@ -148,38 +150,6 @@ public class LandAnalysisService {
         if (area >= 1000) return 6;
         if (area >= 500)  return 4;
         return 2;
-    }
-
-    // ── 토지이용규제 점수 (20점 만점) ──
-    private Integer calcRegulationScore(String etcCodesStr) {
-        if (etcCodesStr == null || etcCodesStr.isBlank()) return 20;
-        Set<String> codes = Arrays.stream(etcCodesStr.split(","))
-                .map(String::trim).collect(Collectors.toSet());
-        boolean disqualify = codes.stream().anyMatch(c ->
-                c.startsWith("UBD") || c.startsWith("FA") || c.startsWith("GF") || c.startsWith("UBB"));
-        if (disqualify) return null;
-        if (codes.size() >= 3) return 7;
-        if (!codes.isEmpty()) return 14;
-        return 20;
-    }
-
-    // ── 용도지역·용도지구 점수 (15점 만점) ──
-    private Integer calcZoneScore(String prposAreaCode, String zoneCodesStr) {
-        if (prposAreaCode != null) {
-            if (prposAreaCode.startsWith("UQA02") || prposAreaCode.startsWith("UQA03")
-                    || prposAreaCode.startsWith("UQA04")) return null;
-            if (prposAreaCode.startsWith("UQA01")) return 15;
-        }
-        boolean hasRestrictiveZone = false;
-        if (zoneCodesStr != null && !zoneCodesStr.isBlank()) {
-            Set<String> zoneCodes = Arrays.stream(zoneCodesStr.split(","))
-                    .map(String::trim).collect(Collectors.toSet());
-            hasRestrictiveZone = zoneCodes.stream().anyMatch(c ->
-                    c.startsWith("UQG") || c.startsWith("UQH") || c.startsWith("UQI"));
-        }
-        if (prposAreaCode == null && (zoneCodesStr == null || zoneCodesStr.isBlank())) return 8;
-        if (hasRestrictiveZone) return 3;
-        return 12;
     }
 
     // ── 일사량 점수 (25점 만점, NASA POWER) ──
@@ -230,11 +200,10 @@ public class LandAnalysisService {
     }
 
     private AiScoreResult callAiForScores(Land land, Integer slopeScore, int areaScore,
-                                          Integer roadScore, Integer regulationScore,
-                                          Integer zoneScore, String etcCodes, String zoneCodes) {
+                                          Integer roadScore, String etcNames, String zoneNames) {
         int sunlightScore = calcSunlightScore(land.getAverageSolarIrradiance());
         String prompt = buildAiPrompt(land, slopeScore, areaScore, roadScore,
-                regulationScore, zoneScore, etcCodes, zoneCodes, sunlightScore);
+                etcNames, zoneNames, sunlightScore);
         try {
             String response = chatClientBuilder.build()
                     .prompt()
@@ -245,13 +214,12 @@ public class LandAnalysisService {
             return parseAiResponse(response, sunlightScore);
         } catch (Exception e) {
             log.warn("AI 분석 호출 실패: {}", e.getMessage());
-            return new AiScoreResult(sunlightScore, buildFallbackRationale(land, slopeScore, roadScore));
+            return new AiScoreResult(sunlightScore, null, null, buildFallbackRationale(land, slopeScore, roadScore));
         }
     }
 
     private String buildAiPrompt(Land land, Integer slopeScore, int areaScore, Integer roadScore,
-                                 Integer regulationScore, Integer zoneScore, String etcCodes,
-                                 String zoneCodes, int sunlightScore) {
+                                 String etcNames, String zoneNames, int sunlightScore) {
         String slopeStr = land.getAverageSlope() != null
                 ? String.format("%.2f", land.getAverageSlope())
                 : "N/A";
@@ -260,7 +228,10 @@ public class LandAnalysisService {
 
         return String.format("""
                 You are a land suitability analyst for solar panel installation projects in South Korea.
-                Do not calculate or change any score. Write only evaluation rationales using the supplied data.
+                Do not calculate or change the solar irradiance, slope, developable-area, or road-accessibility scores.
+                Assess the land-use-regulation score and zoning/district score yourself based on the actual named regulations and zoning information.
+                Do not infer either score from the number of regulations or zones, nor merely from a code prefix.
+                A score of 0 means unsuitable; use the full integer range only when justified. Do not make a legally conclusive judgment: explain that permits require confirmation where needed.
                 Every rationale must be 2 to 3 short Korean sentences on separate lines.
 
                 [Land Information]
@@ -272,9 +243,10 @@ public class LandAnalysisService {
                 [Pre-calculated Scores: do not recalculate these]
                 Solar Irradiance Score: %d / 25 / Slope Score: %s / 20 / Developable Area Score: %d / 10
                 Road Accessibility Score: %s / 10 (Road Side Code: %s)
-                Land Use Regulation Score: %s / 20 / Zoning Score: %s / 15
 
                 Respond ONLY in this exact format:
+                REGULATION_SCORE: <integer from 0 to 20>
+                ZONE_SCORE: <integer from 0 to 15>
                 RATIONALE_SUNLIGHT: <2 or 3 sentences in Korean>
                 RATIONALE_SLOPE: <2 or 3 sentences in Korean>
                 RATIONALE_AREA: <2 or 3 sentences in Korean>
@@ -282,7 +254,7 @@ public class LandAnalysisService {
                 RATIONALE_REGULATION: <2 or 3 sentences in Korean>
                 RATIONALE_ZONE: <2 or 3 sentences in Korean>
                 
-                Provide a specific 1–2 sentence Korean explanation for each score based on actual data and evaluation criteria.
+                Provide a specific Korean explanation for each score based on actual data and evaluation criteria.
                 Explain the factors affecting each score without repeating generic statements.
                 Never invent missing data or criteria; if information is insufficient, state that the evaluation basis cannot be confirmed.
                 Preserve all original scores and maximum scores, avoid vague or repetitive explanations, and mention on-site inspections or permits only when relevant.
@@ -292,26 +264,32 @@ public class LandAnalysisService {
                 land.getDesiredArea() != null ? String.valueOf(land.getDesiredArea()) : "N/A",
                 nullSafe(land.getRegionSido()), nullSafe(land.getRegionSigungu()),
                 nullSafe(land.getPrposAreaName()), nullSafe(land.getPrposAreaCnflcAtNm()),
-                zoneCodes.isBlank() ? "none" : zoneCodes,
-                etcCodes.isBlank() ? "none" : etcCodes,
+                zoneNames.isBlank() ? "none" : zoneNames,
+                etcNames.isBlank() ? "none" : etcNames,
                 slopeStr, solarStr, sunlightScore,
-                scoreText(slopeScore), areaScore, scoreText(roadScore), nullSafe(land.getRoadSideCode()),
-                regulationScore != null ? regulationScore : "disqualified",
-                zoneScore != null ? zoneScore : "disqualified");
+                scoreText(slopeScore), areaScore, scoreText(roadScore), nullSafe(land.getRoadSideCode()));
     }
 
     private AiScoreResult parseAiResponse(String response, int sunlightScore) {
         log.info("AI 분석 원본 응답:\n{}", response);
         if (response == null || response.isBlank()) {
-            return new AiScoreResult(sunlightScore, "AI 분석을 수행할 수 없습니다.");
+            return new AiScoreResult(sunlightScore, null, null, "AI 분석을 수행할 수 없습니다.");
         }
 
         Map<String, StringBuilder> rationales = new LinkedHashMap<>();
+        Integer regulationScore = null;
+        Integer zoneScore = null;
         String currentKey = null;
         for (String line : response.split("\\R")) {
             int idx = line.indexOf(':');
             String key = idx > 0 ? line.substring(0, idx).trim() : "";
-            if (key.startsWith("RATIONALE_") && idx > 0) {
+            if ("REGULATION_SCORE".equals(key)) {
+                regulationScore = parseScore(line.substring(idx + 1), 20);
+                currentKey = null;
+            } else if ("ZONE_SCORE".equals(key)) {
+                zoneScore = parseScore(line.substring(idx + 1), 15);
+                currentKey = null;
+            } else if (key.startsWith("RATIONALE_") && idx > 0) {
                 currentKey = key;
                 rationales.putIfAbsent(key, new StringBuilder());
                 appendLine(rationales.get(key), line.substring(idx + 1).trim());
@@ -332,7 +310,15 @@ public class LandAnalysisService {
         if (rationale.isBlank()) {
             rationale = "AI 분석 결과를 해석할 수 없습니다.";
         }
-        return new AiScoreResult(sunlightScore, rationale);
+        return new AiScoreResult(sunlightScore, regulationScore, zoneScore, rationale);
+    }
+
+    private Integer parseScore(String text, int maxScore) {
+        if (text == null) return null;
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\\b(\\d{1,2})\\b").matcher(text);
+        if (!matcher.find()) return null;
+        int score = Integer.parseInt(matcher.group(1));
+        return score <= maxScore ? score : null;
     }
 
     private void appendLine(StringBuilder sb, String text) {
@@ -373,7 +359,7 @@ public class LandAnalysisService {
 
     private String scoreText(Integer score) { return score == null ? "부적합" : String.valueOf(score); }
 
-    private record AiScoreResult(int sunlightScore, String rationale) {}
+    private record AiScoreResult(int sunlightScore, Integer regulationScore, Integer zoneScore, String rationale) {}
 
     // ═══════════════════════════════════════════════════════════
     // 2. 연도별 공시지가 추이

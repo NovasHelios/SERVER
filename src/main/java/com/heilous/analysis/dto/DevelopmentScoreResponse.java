@@ -74,4 +74,7 @@ public class DevelopmentScoreResponse {
 
     @Schema(description = "각 항목별 점수 산출 이유 (AI 생성)")
     private String rationale;
+
+    @Schema(description = "개발가능성 분석 산정 모델 버전", accessMode = Schema.AccessMode.READ_ONLY)
+    private int analysisVersion;
 }
