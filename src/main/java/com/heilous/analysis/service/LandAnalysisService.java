@@ -282,7 +282,10 @@ public class LandAnalysisService {
                 RATIONALE_REGULATION: <2 or 3 sentences in Korean>
                 RATIONALE_ZONE: <2 or 3 sentences in Korean>
                 
-                Please write them in detail.
+                Provide a specific 1–2 sentence Korean explanation for each score based on actual data and evaluation criteria.
+                Explain the factors affecting each score without repeating generic statements.
+                Never invent missing data or criteria; if information is insufficient, state that the evaluation basis cannot be confirmed.
+                Preserve all original scores and maximum scores, avoid vague or repetitive explanations, and mention on-site inspections or permits only when relevant.
                 """,
                 nullSafe(land.getAddress()), nullSafe(land.getLcCodeNm()),
                 land.getArea() != null ? land.getArea() : 0.0,
