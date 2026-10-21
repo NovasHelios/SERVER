@@ -281,6 +281,8 @@ public class LandAnalysisService {
                 RATIONALE_ROAD: <2 or 3 sentences in Korean>
                 RATIONALE_REGULATION: <2 or 3 sentences in Korean>
                 RATIONALE_ZONE: <2 or 3 sentences in Korean>
+                
+                Please write them in detail.
                 """,
                 nullSafe(land.getAddress()), nullSafe(land.getLcCodeNm()),
                 land.getArea() != null ? land.getArea() : 0.0,
