@@ -52,37 +52,37 @@ public class AiReportService {
     public SolarSuitabilityReportResponse generateSolarSuitabilityReport(Long landId) {
         Land land = getLand(landId);
 
-        // 캐시 히트
-        if (land.getSolarSuitabilityCache() != null) {
-            try {
-                return objectMapper.readValue(land.getSolarSuitabilityCache(), SolarSuitabilityReportResponse.class);
-            } catch (Exception e) {
-                log.warn("태양광 적합도 캐시 역직렬화 실패, 재생성: {}", e.getMessage());
-            }
-        }
-
-        // 개발가능성 분석 (캐시 우선 사용)
+        // 개발가능성 분석에서 만든 항목별 근거를 그대로 사용한다.
+        // analyzeDevelopment는 자체 캐시를 우선 사용하므로 여기서 AI를 다시 호출하지 않는다.
         DevelopmentScoreResponse scores = landAnalysisService.analyzeDevelopment(landId);
 
         List<Criterion> criteria = List.of(
-                new Criterion("일사량", scores.getSunlightScore(), 25),
-                new Criterion("경사도", scores.getSlopeScore(), 20),
-                new Criterion("개발 가능 면적", scores.getAreaScore(), 10),
-                new Criterion("도로 접근성", scores.getRoadScore(), 10),
-                new Criterion("토지이용규제", scores.getRegulationScore(), 20),
-                new Criterion("용도지역·용도지구", scores.getZoneScore(), 15));
-
-        String response = chatClient.prompt().user(buildCriteriaPrompt(land, scores, criteria)).call().content();
-        Map<String, String> explanations = parseKeyValues(response);
+                new Criterion("일사량", "일사량", scores.getSunlightScore(), 25),
+                new Criterion("경사도", "경사도", scores.getSlopeScore(), 20),
+                new Criterion("개발 가능 면적", "개발가능면적", scores.getAreaScore(), 10),
+                new Criterion("도로 접근성", "도로접근성", scores.getRoadScore(), 10),
+                new Criterion("토지이용규제", "토지이용규제", scores.getRegulationScore(), 20),
+                new Criterion("용도지역·용도지구", "용도지역·용도지구", scores.getZoneScore(), 15));
+        Map<String, String> rationales = parseRationaleSections(scores.getRationale());
 
         List<SolarCriterionReport> reports = new ArrayList<>();
-        for (int i = 0; i < criteria.size(); i++) {
-            Criterion c = criteria.get(i);
-            String explanation = explanations.get("CRITERION_" + (i + 1));
+        for (Criterion c : criteria) {
+            String explanation = rationales.get(c.rationaleLabel);
             if (explanation == null || explanation.isBlank()) {
                 explanation = "현재 평가 점수 " + scoreText(c.score) + "을 기준으로 산정되었습니다. 현장 조건과 인허가 사항을 함께 확인해야 합니다.";
             }
             reports.add(new SolarCriterionReport(c.name, c.score, c.maxScore, explanation));
+        }
+
+        // 이전 AI 설명 캐시는 현재 개발가능성 분석 근거와 일치할 때만 재사용한다.
+        if (land.getSolarSuitabilityCache() != null) {
+            try {
+                SolarSuitabilityReportResponse cached = objectMapper.readValue(
+                        land.getSolarSuitabilityCache(), SolarSuitabilityReportResponse.class);
+                if (sameCriteria(cached, reports)) return cached;
+            } catch (Exception e) {
+                log.warn("태양광 적합도 캐시 역직렬화 실패, 재생성: {}", e.getMessage());
+            }
         }
 
         SolarSuitabilityReportResponse result = new SolarSuitabilityReportResponse(land.getId(), land.getAddress(), reports);
@@ -243,6 +243,40 @@ public class AiReportService {
         return result;
     }
 
+    private Map<String, String> parseRationaleSections(String rationale) {
+        Map<String, String> sections = new HashMap<>();
+        if (rationale == null || rationale.isBlank()) return sections;
+
+        String currentLabel = null;
+        StringBuilder currentText = new StringBuilder();
+        for (String line : rationale.split("\\R")) {
+            if (line.startsWith("[") && line.contains("]")) {
+                int end = line.indexOf(']');
+                if (currentLabel != null) sections.put(currentLabel, currentText.toString().trim());
+                currentLabel = line.substring(1, end).trim();
+                currentText = new StringBuilder(line.substring(end + 1).trim());
+            } else if (currentLabel != null && !line.isBlank()) {
+                if (!currentText.isEmpty()) currentText.append('\n');
+                currentText.append(line.trim());
+            }
+        }
+        if (currentLabel != null) sections.put(currentLabel, currentText.toString().trim());
+        return sections;
+    }
+
+    private boolean sameCriteria(SolarSuitabilityReportResponse cached, List<SolarCriterionReport> reports) {
+        if (cached == null || cached.getCriteria() == null || cached.getCriteria().size() != reports.size()) return false;
+        for (int i = 0; i < reports.size(); i++) {
+            SolarCriterionReport oldReport = cached.getCriteria().get(i);
+            SolarCriterionReport newReport = reports.get(i);
+            if (!java.util.Objects.equals(oldReport.getCriterion(), newReport.getCriterion())
+                    || !java.util.Objects.equals(oldReport.getScore(), newReport.getScore())
+                    || !java.util.Objects.equals(oldReport.getMaxScore(), newReport.getMaxScore())
+                    || !java.util.Objects.equals(oldReport.getExplanation(), newReport.getExplanation())) return false;
+        }
+        return true;
+    }
+
     private String summaryText(Map<String, String> summaries, String key) {
         String text = summaries.get(key);
         return text == null || text.isBlank() ? "AI 평가 결과를 해석하지 못했습니다." : text;
@@ -268,7 +302,7 @@ public class AiReportService {
 
     private String value(Double v) { return v == null ? "미제공" : v.toString(); }
     private String scoreText(Integer score) { return score == null ? "부적합/미산정" : score.toString(); }
-    private record Criterion(String name, Integer score, int maxScore) {}
+    private record Criterion(String name, String rationaleLabel, Integer score, int maxScore) {}
     private String nullSafe(String v) { return v != null ? v : "미제공"; }
     private String transactionTypeKo(Land land) {
         if (land.getTransactionType() == null) return "미제공";
