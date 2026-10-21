@@ -83,6 +83,19 @@ public class LandController {
         return APIResponse.ok(landService.getMyLands(email, page, sort));
     }
 
+    @Operation(summary = "결제·분석 통과 내 토지 목록 조회",
+            description = "로그인한 사용자의 토지 중 paid와 passed가 모두 true인 토지만 20개씩 반환합니다. "
+                    + "sort: n(최신순), o(오래된순), pd(희망가격 높은순), pa(희망가격 낮은순)")
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/me/eligible")
+    public APIResponse<LandPageResponse> getMyEligibleLands(
+            @AuthenticationPrincipal String email,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "n") String sort
+    ) {
+        return APIResponse.ok(landService.getMyEligibleLands(email, page, sort));
+    }
+
     @Operation(
             summary = "토지 상세 조회",
             description = "토지 ID로 특정 토지의 상세 정보를 조회합니다. 면적, 지목, 법정동, 좌표, 용도지역, 용도지구, 기타 규제, 이미지 등 모든 필드를 반환합니다. 로그인 없이 조회 가능합니다."

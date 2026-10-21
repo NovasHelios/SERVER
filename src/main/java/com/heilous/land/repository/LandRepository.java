@@ -24,6 +24,8 @@ public interface LandRepository extends JpaRepository<Land, Long>, JpaSpecificat
 
     Page<Land> findByOwnerEmail(String email, Pageable pageable);
 
+    Page<Land> findByOwnerEmailAndPaidTrueAndPassedTrue(String email, Pageable pageable);
+
     @Query("select l from Land l join fetch l.owner left join fetch l.landImages where l.id = :id")
     Optional<Land> findWithImagesById(@Param("id") Long id);
 

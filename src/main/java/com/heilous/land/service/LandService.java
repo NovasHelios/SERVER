@@ -271,6 +271,19 @@ public class LandService {
         Page<Land> lands = landRepository.findByOwnerEmail(
                 email, PageRequest.of(Math.max(0, page), 20, toLandSort(sortCode)));
 
+        return toLandPageResponse(lands);
+    }
+
+    // 결제와 개발가능성 분석을 모두 통과한 내 토지 조회
+    @Transactional(readOnly = true)
+    public LandPageResponse getMyEligibleLands(String email, int page, String sortCode) {
+        Page<Land> lands = landRepository.findByOwnerEmailAndPaidTrueAndPassedTrue(
+                email, PageRequest.of(Math.max(0, page), 20, toLandSort(sortCode)));
+
+        return toLandPageResponse(lands);
+    }
+
+    private LandPageResponse toLandPageResponse(Page<Land> lands) {
         return LandPageResponse.builder()
                 .content(lands.getContent().stream().map(LandResponse::from).toList())
                 .page(lands.getNumber())
