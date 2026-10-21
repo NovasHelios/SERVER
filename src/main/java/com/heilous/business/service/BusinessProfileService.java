@@ -36,7 +36,7 @@ public class BusinessProfileService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
 
-        if (user.getPlan() != UserPlan.BUSINESS) {
+        if (!hasOwnerOrBusinessFeatureAccess(user)) {
             throw new CustomException(GlobalErrorCode.PLAN_REQUIRED);
         }
 
@@ -88,6 +88,10 @@ public class BusinessProfileService {
                 businessProfileRepository.findByUserEmail(email)
                         .orElseThrow(() -> new CustomException(GlobalErrorCode.INTERNAL_SERVER_ERROR))
         );
+    }
+
+    private boolean hasOwnerOrBusinessFeatureAccess(User user) {
+        return user.getPlan() == UserPlan.OWNER || user.getPlan() == UserPlan.BUSINESS;
     }
 
     // 사업자 인증 파일 업로드

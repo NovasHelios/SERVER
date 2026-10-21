@@ -30,7 +30,7 @@ public class LandController {
 
     @Operation(
             summary = "토지 등록",
-            description = "USER 권한을 가진 사용자가 토지를 등록 신청합니다. 주소를 입력하면 카카오 API와 VWorld API를 통해 면적, 지목, 법정동 등 상세 정보가 자동으로 조회됩니다. 등록된 토지는 PENDING 상태로 관리자 승인을 기다립니다. multipart/form-data로 전송하며 이미지는 최소 3장, 최대 5장 필수 첨부해야 합니다."
+            description = "USER 권한을 가진 사용자가 토지를 등록합니다. 주소를 입력하면 카카오 API와 VWorld API를 통해 면적, 지목, 법정동 등 상세 정보가 자동으로 조회되고, 개발가능성 분석 총점 및 통과 여부가 저장됩니다. 시연 중에는 등록 직후 APPROVED 상태로 처리됩니다. multipart/form-data로 전송하며 이미지는 최소 3장, 최대 5장 필수 첨부해야 합니다."
     )
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping(consumes = "multipart/form-data")
@@ -100,7 +100,6 @@ public class LandController {
     @Operation(
             summary = "토지 필터 조회",
             description = "다양한 조건으로 토지를 필터링하여 조회합니다. 모든 파라미터는 선택사항이며 복합 적용 가능합니다.\n\n"
-                    + "- status: PENDING | APPROVED | REJECTED (미입력 시 전체)\n"
                     + "- transactionType: SALE | LEASE\n"
                     + "- saleMinPrice / saleMaxPrice: 매매 희망가격 범위 (원 단위)\n"
                     + "- leaseMinPrice / leaseMaxPrice: 임대 희망가격 범위 (원 단위)\n"
@@ -114,6 +113,18 @@ public class LandController {
             @RequestBody LandFilterRequest filter
     ) {
         return APIResponse.ok(landService.getLandsByFilter(filter));
+    }
+
+    @Operation(summary = "토지 분석 결제 (임시)",
+            description = "실제 결제 연동 전 임시 API입니다. 토지 소유자가 호출하면 paid 값을 true로 변경합니다.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/{landId}/payment")
+    public APIResponse<String> payForLand(
+            @PathVariable Long landId,
+            @AuthenticationPrincipal String email
+    ) {
+        landService.payForLand(landId, email);
+        return APIResponse.ok("결제 완료");
     }
 
     @Operation(
@@ -158,7 +169,7 @@ public class LandController {
 
     @Operation(
             summary = "토지 등록 승인 (토지 소유자)",
-            description = "토지 소유자(USER)가 해당 토지에 접수된 기업의 매수/임대 신청을 직접 승인합니다. LandController의 승인과는 별개로, 이 엔드포인트는 토지 상태(LandStatus)를 APPROVED로 변경합니다."
+            description = "관리자가 토지를 승인합니다. 이 엔드포인트는 토지 상태(LandStatus)를 APPROVED로 변경합니다."
     )
     @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{landId}/approve")

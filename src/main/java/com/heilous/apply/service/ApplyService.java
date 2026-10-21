@@ -32,7 +32,7 @@ public class ApplyService {
         User company = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
 
-        if (company.getPlan() != UserPlan.BUSINESS) {
+        if (!hasOwnerOrBusinessFeatureAccess(company)) {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
 
@@ -82,5 +82,9 @@ public class ApplyService {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
         apply.changeStatus(ApplyStatus.REJECTED);
+    }
+
+    private boolean hasOwnerOrBusinessFeatureAccess(User user) {
+        return user.getPlan() == UserPlan.OWNER || user.getPlan() == UserPlan.BUSINESS;
     }
 }

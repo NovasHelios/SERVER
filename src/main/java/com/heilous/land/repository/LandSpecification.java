@@ -15,12 +15,10 @@ public class LandSpecification {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // 상태 필터
-            if (filter.getStatus() != null) {
-                predicates.add(
-                        cb.equal(root.get("status"), filter.getStatus())
-                );
-            }
+            // 공개 목록은 결제·개발가능성 검증을 통과한 APPROVED 토지만 제공한다.
+            predicates.add(cb.equal(root.get("status"), Land.LandStatus.APPROVED));
+            predicates.add(cb.isTrue(root.get("paid")));
+            predicates.add(cb.isTrue(root.get("passed")));
 
             // 희망 면적 범위
             if (filter.getMinArea() != null) {

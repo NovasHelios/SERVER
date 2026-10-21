@@ -36,6 +36,9 @@ public class LandDetailResponse {
     private String description;
     private String status;
     private String transactionType;
+    private Integer landScore;
+    private boolean paid;
+    private boolean passed;
 
     // 좌표
     private Double x;
@@ -124,6 +127,9 @@ public class LandDetailResponse {
                 .description(land.getDescription())
                 .status(land.getStatus() != null ? land.getStatus().name() : null)
                 .transactionType(land.getTransactionType() != null ? land.getTransactionType().name() : null)
+                .landScore(land.getLandScore())
+                .paid(land.isPaid())
+                .passed(land.isPassed())
                 .x(land.getX())
                 .y(land.getY())
                 .prposAreaCode(land.getPrposAreaCode())

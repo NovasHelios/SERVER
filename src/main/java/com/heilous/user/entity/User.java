@@ -36,7 +36,7 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private UserPlan plan = UserPlan.FREE;
+    private UserPlan plan = UserPlan.OWNER;
 
     @Column(nullable = false)
     private boolean isVerified;

@@ -54,6 +54,14 @@ public class Land extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private LandStatus status;
 
+    private Integer landScore;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean paid;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean passed;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionType transactionType;
@@ -109,23 +117,29 @@ public class Land extends BaseEntity {
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 50)
+    @Builder.Default
     private List<LandZone> landZones = new ArrayList<>();
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 50)
+    @Builder.Default
     private List<LandEtc> landEtcs = new ArrayList<>();
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @BatchSize(size = 50)
+    @Builder.Default
     private List<LandImage> landImages = new ArrayList<>();
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @Builder.Default
     private List<Wish> wishes = new ArrayList<>();
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @Builder.Default
     private List<LandApply> landApplies = new ArrayList<>();
 
     @OneToMany(mappedBy = "land", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @Builder.Default
     private List<ChatRoom> chatRooms = new ArrayList<>();
 
     public enum LandStatus { PENDING, APPROVED, REJECTED }
@@ -152,6 +166,11 @@ public class Land extends BaseEntity {
     }
 
     public void changeStatus(LandStatus status) { this.status = status; }
+    public void completePayment() { this.paid = true; }
+    public void updateAnalysisResult(Integer landScore, boolean passed) {
+        this.landScore = landScore;
+        this.passed = passed;
+    }
     public void addImage(LandImage image) { this.landImages.add(image); }
     public void removeImage(LandImage image) { this.landImages.remove(image); }
     public void updateDocumentPath(String documentPath) { this.documentPath = documentPath; }

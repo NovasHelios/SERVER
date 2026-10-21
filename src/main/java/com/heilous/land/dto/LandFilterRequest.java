@@ -15,8 +15,6 @@ public class LandFilterRequest {
     private Double bottomRightX;
     private Double bottomRightY;
 
-    private Land.LandStatus status; // nullable → null이면 전체 상태
-
     private Land.TransactionType transactionType;
 
     // 매매 가격 범위

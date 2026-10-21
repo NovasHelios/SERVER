@@ -24,6 +24,9 @@ public class LandResponse {
     private String lcCodeNm;
     private String regstrSeCodeNm;
     private String prposAreaName;
+    private Integer landScore;
+    private boolean paid;
+    private boolean passed;
     private LocalDateTime createdAt;
 
     public static LandResponse from(Land land) {
@@ -41,6 +44,9 @@ public class LandResponse {
                 .lcCodeNm(land.getLcCodeNm())
                 .regstrSeCodeNm(land.getRegstrSeCodeNm())
                 .prposAreaName(land.getPrposAreaName())
+                .landScore(land.getLandScore())
+                .paid(land.isPaid())
+                .passed(land.isPassed())
                 .createdAt(land.getCreatedAt())
                 .build();
     }

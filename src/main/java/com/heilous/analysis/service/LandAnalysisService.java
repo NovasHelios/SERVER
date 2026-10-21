@@ -423,7 +423,8 @@ public class LandAnalysisService {
     private Land getLandWithDetails(Long landId) {
         Land land = landRepository.findWithZonesById(landId)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
-        landRepository.findWithEtcsById(landId).ifPresent(l -> land.getLandEtcs().addAll(l.getLandEtcs()));
+        // 같은 영속성 컨텍스트에서 두 번째 fetch join은 동일 Land 인스턴스의 etc 컬렉션을 초기화한다.
+        landRepository.findWithEtcsById(landId);
         return land;
     }
 

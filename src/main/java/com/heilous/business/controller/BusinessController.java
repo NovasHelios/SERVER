@@ -28,7 +28,7 @@ public class BusinessController {
 
     private final BusinessProfileService businessProfileService;
 
-    @Operation(summary = "사업자 프로필 등록/수정 — BUSINESS 플랜 사용자만 가능합니다.")
+    @Operation(summary = "사업자 프로필 등록/수정 — OWNER 또는 BUSINESS 플랜 사용자가 이용할 수 있습니다.")
     @PutMapping(value = "/profile", consumes = "multipart/form-data")
     public APIResponse<BusinessProfileResponse> saveProfile(
             @AuthenticationPrincipal String email,

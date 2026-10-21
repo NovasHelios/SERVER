@@ -39,7 +39,7 @@ public class ChatService {
     @Transactional
     public ChatRoomResponse createRoom(Long landId, String initialMessage, String email) {
         User company = getUser(email);
-        if (company.getPlan() != UserPlan.BUSINESS) {
+        if (!hasOwnerOrBusinessFeatureAccess(company)) {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
         Land land = landRepository.findById(landId)
@@ -77,7 +77,7 @@ public class ChatService {
         User business = userRepository.findById(businessUserId)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
 
-        if (business.getPlan() != UserPlan.BUSINESS) {
+        if (!hasOwnerOrBusinessFeatureAccess(business)) {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
 
@@ -104,7 +104,7 @@ public class ChatService {
         User business = userRepository.findById(businessUserId)
                 .orElseThrow(() -> new CustomException(GlobalErrorCode.USER_NOT_FOUND));
 
-        if (business.getPlan() != UserPlan.BUSINESS) {
+        if (!hasOwnerOrBusinessFeatureAccess(business)) {
             throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
         }
         if (requester.getId().equals(businessUserId)) {
@@ -145,6 +145,10 @@ public class ChatService {
                     latest == null ? null : latest.getContent(),
                     latest == null ? null : latest.getCreatedAt());
         }).toList();
+    }
+
+    private boolean hasOwnerOrBusinessFeatureAccess(User user) {
+        return user.getPlan() == UserPlan.OWNER || user.getPlan() == UserPlan.BUSINESS;
     }
 
     @Transactional

@@ -140,7 +140,10 @@ public class LandService {
                 .description(request.getDescription())
                 .desiredArea(request.getDesiredArea())
                 .transactionType(request.getTransactionType())
+                // 시연 중에는 등록 즉시 노출 승인 상태로 처리한다.
                 .status(Land.LandStatus.APPROVED)
+                .paid(false)
+                .passed(false)
                 .x(addressLandResponse.getX())
                 .y(addressLandResponse.getY())
                 .build();
@@ -176,6 +179,17 @@ public class LandService {
             }
         } catch (Exception e) {
             log.warn("일사량 조회 실패: {}", e.getMessage());
+        }
+
+        // 등록에 필요한 원천 정보가 준비된 뒤 개발가능성을 자동 분석한다.
+        // AI·외부 데이터 분석 실패가 토지 등록 전체를 실패시키지 않도록 미통과·점수 미산정 상태로 보관한다.
+        try {
+            var analysis = landAnalysisService.analyzeDevelopment(land.getId());
+            Integer totalScore = analysis.getTotalScore();
+            land.updateAnalysisResult(totalScore, totalScore != null && totalScore >= 70);
+        } catch (Exception e) {
+            log.error("등록 후 개발가능성 자동 분석 실패 (landId={}): {}", land.getId(), e.getMessage(), e);
+            land.updateAnalysisResult(null, false);
         }
 
         // 이미지 저장
@@ -228,6 +242,19 @@ public class LandService {
                 .stream()
                 .map(LandResponse::from)
                 .toList();
+    }
+
+    // 임시 결제 처리: 실제 PG 연동 전까지는 결제 완료 여부만 변경한다.
+    @Transactional
+    public void payForLand(Long landId, String email) {
+        Land land = landRepository.findById(landId)
+                .orElseThrow(() -> new CustomException(GlobalErrorCode.LAND_NOT_FOUND));
+
+        if (!land.getOwner().getEmail().equals(email)) {
+            throw new CustomException(GlobalErrorCode.ACCESS_DENIED);
+        }
+
+        land.completePayment();
     }
 
     // 내 토지 조회
